@@ -12,7 +12,7 @@ from .agent import LabAgent
 from .incidents import disable, enable, status
 from .logging_config import configure_logging, get_logger
 from .metrics import record_error, snapshot
-from .middleware import CorrelationIdMiddleware
+from .middleware import CorrelationIdMiddleware, observability_response_headers
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
 from .tracing import tracing_enabled
@@ -36,6 +36,32 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
 app.add_middleware(CorrelationIdMiddleware)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    error_type = type(exc).__name__
+    correlation_id = getattr(request.state, "correlation_id", "system-unscoped")
+    started_at = getattr(request.state, "request_started_at", None)
+
+    record_error(error_type)
+    log.error(
+        "request_failed",
+        service="api",
+        correlation_id=correlation_id,
+        error_type=error_type,
+        payload={"path": request.url.path, "detail": str(exc)},
+    )
+
+    headers = {"x-request-id": correlation_id}
+    if started_at is not None:
+        headers.update(observability_response_headers(correlation_id, started_at))
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+        headers=headers,
+    )
 
 
 @app.get("/health")
