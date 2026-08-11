@@ -202,6 +202,13 @@
     }
     .trace-link.visible { display: grid; }
     .trace-link:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .trace-link.pending {
+      display: grid;
+      pointer-events: none;
+      color: var(--muted);
+      background: rgba(98, 116, 123, .13);
+      border: 1px solid var(--line);
+    }
     .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
     .meta-cell { padding: 20px 16px; background: #0b1d29; min-width: 0; }
     .meta-cell strong { display: block; margin-top: 7px; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -465,6 +472,7 @@
     const $ = (selector) => document.querySelector(selector);
     const sessionId = sessionStorage.getItem("signal-session") || `web-${crypto.randomUUID()}`;
     const userId = localStorage.getItem("signal-user") || `demo-${crypto.randomUUID()}`;
+    let tracePollToken = 0;
     sessionStorage.setItem("signal-session", sessionId);
     localStorage.setItem("signal-user", userId);
 
@@ -490,6 +498,34 @@
       } catch (_) { /* Metrics are supplementary to the chat demo. */ }
     }
 
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    async function waitForTrace(traceId, fallbackUrl, pollToken) {
+      const link = $("#traceLink");
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        if (pollToken !== tracePollToken) return;
+        try {
+          const response = await fetch(`/traces/${encodeURIComponent(traceId)}/status`, {
+            cache: "no-store"
+          });
+          const status = await response.json();
+          if (response.ok && status.ready) {
+            link.href = status.trace_url || fallbackUrl;
+            link.textContent = `Open live trace in Langfuse · ${status.observations} observations`;
+            link.classList.add("visible");
+            link.classList.remove("pending");
+            return;
+          }
+        } catch (_) { /* Keep polling while Langfuse finishes indexing. */ }
+        link.textContent = `Langfuse is indexing the trace · attempt ${attempt + 1}`;
+        await wait(Math.min(1000 + attempt * 150, 2500));
+      }
+      if (pollToken === tracePollToken) {
+        link.textContent = "Trace is still indexing · wait and retry the request";
+        link.classList.add("visible", "pending");
+      }
+    }
+
     function renderResult(data) {
       $("#answer").classList.remove("error");
       $("#answer").textContent = data.answer;
@@ -506,11 +542,15 @@
       $("#ragValue").textContent = `${data.rag_latency_ms} ms`;
       $("#llmValue").textContent = `${data.llm_latency_ms} ms`;
 
-      if (data.trace_url) {
-        $("#traceLink").href = data.trace_url;
-        $("#traceLink").classList.add("visible");
+      tracePollToken += 1;
+      const currentPollToken = tracePollToken;
+      if (data.trace_id && data.trace_url) {
+        $("#traceLink").removeAttribute("href");
+        $("#traceLink").textContent = "Langfuse is indexing the trace";
+        $("#traceLink").classList.add("visible", "pending");
+        waitForTrace(data.trace_id, data.trace_url, currentPollToken);
       } else {
-        $("#traceLink").classList.remove("visible");
+        $("#traceLink").classList.remove("visible", "pending");
       }
       $("#answerWrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
