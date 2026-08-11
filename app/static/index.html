@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Signal Room — AI Observability Demo</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #071019;
+      --panel: rgba(12, 27, 39, .82);
+      --line: rgba(173, 216, 230, .16);
+      --text: #f1f7f8;
+      --muted: #91a5ad;
+      --cyan: #72e6e1;
+      --lime: #c9f56c;
+      --coral: #ff8b73;
+      --blue: #83a9ff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 84% 12%, rgba(64, 141, 163, .18), transparent 32rem),
+        radial-gradient(circle at 8% 42%, rgba(142, 231, 184, .08), transparent 28rem),
+        var(--ink);
+      color: var(--text);
+      font-family: "Satoshi", "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .14;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.13'/%3E%3C/svg%3E");
+      z-index: 100;
+    }
+    a { color: inherit; }
+    button, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1480px, calc(100% - 40px)); margin-inline: auto; }
+
+    nav {
+      position: sticky;
+      top: 18px;
+      z-index: 50;
+      padding-top: 18px;
+    }
+    .nav-inner {
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(7, 16, 25, .76);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .24);
+    }
+    .brand { font-weight: 900; letter-spacing: -.03em; }
+    .brand-mark { color: var(--cyan); }
+    .nav-links { display: flex; gap: 26px; color: var(--muted); font-size: 14px; }
+    .nav-links a { text-decoration: none; transition: color .25s; }
+    .nav-links a:hover { color: var(--text); }
+    .runtime { justify-self: end; display: flex; gap: 9px; align-items: center; color: var(--muted); font-size: 13px; }
+    .runtime-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 18px currentColor; }
+    .runtime.ready .runtime-dot { background: var(--lime); }
+
+    main { overflow-x: hidden; width: 100%; max-width: 100%; }
+    .hero {
+      position: relative;
+      min-height: 910px;
+      padding: 140px 0 120px;
+    }
+    .hero-heading {
+      width: min(1152px, 100%);
+      margin: 0;
+      font-size: clamp(3rem, 6vw, 6.5rem);
+      line-height: .94;
+      letter-spacing: -.065em;
+      font-weight: 900;
+      text-wrap: balance;
+    }
+    .hero-heading .soft { color: #82969c; }
+    .micro-visual {
+      display: inline-block;
+      width: clamp(82px, 10vw, 164px);
+      height: .62em;
+      margin: 0 .08em;
+      vertical-align: .02em;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, rgba(114, 230, 225, .08), transparent),
+        url("https://picsum.photos/seed/signal-observability/420/180") center/cover;
+      filter: grayscale(1) contrast(1.4);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+    }
+    .hero-copy {
+      max-width: 690px;
+      margin: 38px 0 0;
+      font-size: clamp(17px, 1.6vw, 22px);
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(340px, 5fr);
+      grid-auto-flow: dense;
+      gap: 0;
+      margin-top: 70px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+      background: rgba(7, 16, 25, .42);
+      box-shadow: 0 34px 100px rgba(0,0,0,.32);
+    }
+    .chat-panel { padding: clamp(28px, 4vw, 56px); background: rgba(13, 29, 42, .72); }
+    .panel-head { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: 28px; }
+    .panel-head h2 { margin: 0; font-size: 25px; letter-spacing: -.035em; }
+    .provider-label { color: var(--cyan); font-size: 13px; text-align: right; }
+    .quick-prompts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: 16px; background: var(--line); border: 1px solid var(--line); }
+    .quick-prompts button {
+      min-height: 52px;
+      padding: 10px 14px;
+      border: 0;
+      color: var(--muted);
+      background: #0c1b27;
+      transition: color .25s, background .25s;
+    }
+    .quick-prompts button:hover { color: var(--text); background: #122b39; }
+    textarea {
+      width: 100%;
+      min-height: 128px;
+      resize: vertical;
+      padding: 20px;
+      color: var(--text);
+      background: #07141e;
+      border: 1px solid var(--line);
+      outline: none;
+      line-height: 1.5;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    textarea:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(114,230,225,.08); }
+    .form-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; margin-top: 12px; }
+    select {
+      border: 1px solid var(--line);
+      padding: 0 14px;
+      color: var(--text);
+      background: #0a1823;
+    }
+    .ask-button {
+      min-height: 58px;
+      border: 0;
+      color: #071019;
+      background: var(--text);
+      font-weight: 900;
+      letter-spacing: -.02em;
+      transition: transform .25s, background .25s;
+    }
+    .ask-button:hover { transform: translateY(-2px); background: var(--cyan); }
+    .ask-button:disabled { opacity: .56; cursor: wait; transform: none; }
+    .answer-wrap {
+      display: none;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .answer-wrap.visible { display: block; }
+    .answer { margin: 0; white-space: pre-wrap; line-height: 1.68; font-size: 17px; }
+    .error { color: var(--coral); }
+
+    .signal-rail { display: flex; flex-direction: column; min-width: 0; background: #091823; }
+    .rail-top { padding: 34px; border-bottom: 1px solid var(--line); }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    .trace-proof { margin: 15px 0 0; font-family: Consolas, monospace; color: var(--cyan); font-size: 14px; overflow-wrap: anywhere; }
+    .waterfall { padding: 34px; flex: 1; }
+    .waterfall h3 { margin: 0 0 28px; font-size: 20px; }
+    .span { display: grid; grid-template-columns: 82px 1fr 72px; gap: 12px; align-items: center; margin: 18px 0; font-size: 13px; color: var(--muted); }
+    .track { height: 15px; background: rgba(255,255,255,.06); overflow: hidden; }
+    .fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+    .fill.rag { background: var(--blue); }
+    .fill.llm { background: var(--lime); }
+    .span-value { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+    .trace-link {
+      display: none;
+      margin: 8px 34px 34px;
+      min-height: 52px;
+      place-items: center;
+      text-decoration: none;
+      color: #06121b;
+      background: var(--cyan);
+      font-weight: 900;
+      transition: transform .25s, filter .25s;
+    }
+    .trace-link.visible { display: grid; }
+    .trace-link:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+    .meta-cell { padding: 20px 16px; background: #0b1d29; min-width: 0; }
+    .meta-cell strong { display: block; margin-top: 7px; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .interest { padding: 170px 0; }
+    .chapter-title { max-width: 980px; margin: 0 0 70px; font-size: clamp(2.4rem, 5vw, 5rem); line-height: 1; letter-spacing: -.055em; }
+    .bento { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-flow: dense; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .metric-card { min-height: 260px; padding: 30px; background: #0b1b27; position: relative; overflow: hidden; }
+    .metric-card:nth-child(1) { grid-column: span 4; }
+    .metric-card:nth-child(2) { grid-column: span 4; }
+    .metric-card:nth-child(3) { grid-column: span 4; }
+    .metric-card:hover .metric-orb { transform: scale(1.22); }
+    .metric-orb { position: absolute; width: 190px; height: 190px; right: -70px; bottom: -80px; border-radius: 50%; filter: blur(4px); opacity: .26; transition: transform .7s ease-out; }
+    .metric-card:nth-child(1) .metric-orb { background: var(--cyan); }
+    .metric-card:nth-child(2) .metric-orb { background: var(--lime); }
+    .metric-card:nth-child(3) .metric-orb { background: var(--blue); }
+    .metric-name { color: var(--muted); }
+    .metric-value { margin-top: 34px; font-size: clamp(2.8rem, 5vw, 5.4rem); font-weight: 900; letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
+    .metric-foot { position: absolute; left: 30px; bottom: 28px; color: var(--muted); font-size: 13px; }
+
+    .desire { padding: 180px 0 220px; }
+    .desire-layout { display: grid; grid-template-columns: 4fr 8fr; gap: 80px; align-items: start; }
+    .desire-copy { position: sticky; top: 130px; }
+    .desire-copy h2 { margin: 0; font-size: clamp(2.5rem, 4vw, 4.8rem); line-height: 1; letter-spacing: -.055em; }
+    .reveal-copy { margin-top: 28px; color: var(--muted); font-size: 20px; line-height: 1.6; }
+    .stack { min-height: 860px; }
+    .stack-card {
+      position: sticky;
+      top: 130px;
+      min-height: 260px;
+      margin-bottom: 110px;
+      padding: 36px;
+      border: 1px solid var(--line);
+      background: rgba(12, 29, 41, .94);
+      box-shadow: 0 28px 70px rgba(0,0,0,.3);
+      transform-origin: center top;
+    }
+    .stack-card:nth-child(2) { top: 155px; }
+    .stack-card:nth-child(3) { top: 180px; }
+    .stack-card h3 { font-size: 28px; margin: 0 0 14px; }
+    .stack-card p { color: var(--muted); line-height: 1.6; max-width: 700px; }
+    .accordions { display: flex; height: 140px; margin-top: 28px; overflow: hidden; }
+    .accord { flex: 1; padding: 20px; border-right: 1px solid var(--line); background: #0a1721; transition: flex .55s ease, background .3s; overflow: hidden; }
+    .accord:hover { flex: 2.4; background: #102936; }
+    .accord strong { display: block; color: var(--cyan); }
+    .accord span { display: block; width: 240px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+
+    footer { padding: 90px 0 50px; border-top: 1px solid var(--line); background: var(--text); color: #071019; }
+    .footer-grid { display: grid; grid-template-columns: 8fr 4fr; gap: 60px; align-items: end; }
+    footer h2 { max-width: 900px; margin: 0; font-size: clamp(3rem, 6vw, 7rem); line-height: .9; letter-spacing: -.07em; }
+    footer p { line-height: 1.6; opacity: .68; }
+    .footer-link { display: inline-block; margin-top: 18px; padding: 17px 24px; background: #071019; color: white; text-decoration: none; font-weight: 800; }
+
+    @media (max-width: 920px) {
+      .nav-links { display: none; }
+      .nav-inner { grid-template-columns: 1fr 1fr; }
+      .hero { padding-top: 100px; }
+      .hero-grid, .desire-layout, .footer-grid { grid-template-columns: 1fr; }
+      .metric-card:nth-child(n) { grid-column: span 12; }
+      .desire-copy { position: static; }
+      .quick-prompts { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      select { min-height: 52px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="shell">
+    <div class="nav-inner">
+      <div class="brand"><span class="brand-mark">Signal</span> Room</div>
+      <div class="nav-links">
+        <a href="#ask">Live query</a>
+        <a href="#signals">Signals</a>
+        <a href="#proof">Trace proof</a>
+      </div>
+      <div class="runtime" id="runtime"><span class="runtime-dot"></span><span id="runtimeText">Connecting</span></div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero shell" id="ask">
+      <h1 class="hero-heading">Ask the model. <span class="micro-visual" aria-hidden="true"></span> <span class="soft">Watch every signal answer back.</span></h1>
+      <p class="hero-copy">Một phòng demo duy nhất cho OpenRouter inference, Langfuse tracing và structured logs. Mỗi câu hỏi tạo ra một bằng chứng có correlation ID, prompt version và waterfall RAG–LLM.</p>
+
+      <div class="hero-grid">
+        <section class="chat-panel" aria-labelledby="chatTitle">
+          <div class="panel-head">
+            <h2 id="chatTitle">Live inference</h2>
+            <div class="provider-label" id="providerLabel">Provider pending</div>
+          </div>
+          <div class="quick-prompts" aria-label="Câu hỏi mẫu">
+            <button type="button" data-prompt="Explain how metrics, traces, and logs work together.">Observability flow</button>
+            <button type="button" data-prompt="What is the refund policy and required evidence?">Refund policy</button>
+            <button type="button" data-prompt="How should an AI API protect PII in production logs?">PII protection</button>
+          </div>
+          <form id="chatForm">
+            <label class="eyebrow" for="message">Your question</label>
+            <textarea id="message" required maxlength="4000" placeholder="Ask a question that the team can trace live..."></textarea>
+            <div class="form-row">
+              <select id="feature" aria-label="Feature">
+                <option value="qa">QA</option>
+                <option value="refund">Refund</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="policy">Policy</option>
+              </select>
+              <button class="ask-button" id="askButton" type="submit">Run traced inference</button>
+            </div>
+          </form>
+          <div class="answer-wrap" id="answerWrap" aria-live="polite">
+            <div class="eyebrow">Model answer</div>
+            <p class="answer" id="answer"></p>
+          </div>
+        </section>
+
+        <aside class="signal-rail" aria-label="Live trace details">
+          <div class="rail-top">
+            <div class="eyebrow">Trace identity</div>
+            <div class="trace-proof" id="traceProof">Waiting for a request</div>
+          </div>
+          <div class="waterfall">
+            <h3>Request waterfall</h3>
+            <div class="span"><span>RAG</span><div class="track"><div class="fill rag" id="ragFill"></div></div><span class="span-value" id="ragValue">—</span></div>
+            <div class="span"><span>LLM</span><div class="track"><div class="fill llm" id="llmFill"></div></div><span class="span-value" id="llmValue">—</span></div>
+          </div>
+          <a class="trace-link" id="traceLink" target="_blank" rel="noreferrer">Open live trace in Langfuse</a>
+          <div class="meta-grid">
+            <div class="meta-cell"><span class="eyebrow">Prompt</span><strong id="promptMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Tokens</span><strong id="tokenMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Cost</span><strong id="costMeta">—</strong></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="interest shell" id="signals">
+      <h2 class="chapter-title">Inference is an opinion. <span style="color:var(--cyan)">Telemetry is the evidence.</span></h2>
+      <div class="bento">
+        <article class="metric-card"><div class="metric-name">P95 latency</div><div class="metric-value" id="metricLatency">0 ms</div><div class="metric-foot">SLO ≤ 3000 ms</div><div class="metric-orb"></div></article>
+        <article class="metric-card"><div class="metric-name">Traffic</div><div class="metric-value" id="metricTraffic">0</div><div class="metric-foot">Observed requests</div><div class="metric-orb"></div></article>
+        <article class="metric-card"><div class="metric-name">Quality proxy</div><div class="metric-value" id="metricQuality">0.00</div><div class="metric-foot">Target ≥ 0.75</div><div class="metric-orb"></div></article>
+      </div>
+    </section>
+
+    <section class="desire shell" id="proof">
+      <div class="desire-layout">
+        <div class="desire-copy">
+          <h2>Proof that survives the demo.</h2>
+          <p class="reveal-copy">Metrics reveal the symptom. Traces isolate the slow span. Logs connect the root cause to one correlation ID. Prompt metadata proves exactly which managed version generated the answer.</p>
+        </div>
+        <div class="stack">
+          <article class="stack-card">
+            <h3>One request, one identity</h3>
+            <p>The response exposes the same correlation ID written to structured logs and attached to Langfuse trace metadata.</p>
+            <div class="accordions">
+              <div class="accord"><strong>Correlation</strong><span>Follows API, RAG, LLM and response events.</span></div>
+              <div class="accord"><strong>Trace</strong><span>Opens the live Langfuse waterfall.</span></div>
+              <div class="accord"><strong>Prompt</strong><span>Records name, label and immutable version.</span></div>
+            </div>
+          </article>
+          <article class="stack-card">
+            <h3>OpenRouter, without browser secrets</h3>
+            <p>The API key remains server-side. The browser receives only safe inference metadata, while Langfuse captures usage and cost without raw prompt/output capture.</p>
+          </article>
+          <article class="stack-card">
+            <h3>Incident-ready by design</h3>
+            <p>Stage timing makes the difference visible: retrieval latency belongs to RAG; generation latency belongs to the routed model. The team can explain the root cause instead of guessing.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <h2>Run it live. Open the trace. Prove the system.</h2>
+      <div><p id="signalCarousel">Every request leaves evidence.</p><a class="footer-link" href="#ask">Ask another question</a></div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const sessionId = sessionStorage.getItem("signal-session") || `web-${crypto.randomUUID()}`;
+    const userId = localStorage.getItem("signal-user") || `demo-${crypto.randomUUID()}`;
+    sessionStorage.setItem("signal-session", sessionId);
+    localStorage.setItem("signal-user", userId);
+
+    async function refreshHealth() {
+      try {
+        const response = await fetch("/health");
+        const health = await response.json();
+        $("#runtime").classList.toggle("ready", health.ok && health.tracing_enabled);
+        $("#runtimeText").textContent = health.tracing_enabled ? "Langfuse connected" : "Tracing offline";
+        $("#providerLabel").textContent = `${health.llm_provider} · ${health.model}`;
+      } catch (_) {
+        $("#runtimeText").textContent = "API unavailable";
+      }
+    }
+
+    async function refreshMetrics() {
+      try {
+        const response = await fetch("/metrics");
+        const metrics = await response.json();
+        $("#metricLatency").textContent = `${Math.round(metrics.latency_p95 || 0)} ms`;
+        $("#metricTraffic").textContent = metrics.traffic || 0;
+        $("#metricQuality").textContent = Number(metrics.quality_avg || 0).toFixed(2);
+      } catch (_) { /* Metrics are supplementary to the chat demo. */ }
+    }
+
+    function renderResult(data) {
+      $("#answer").classList.remove("error");
+      $("#answer").textContent = data.answer;
+      $("#answerWrap").classList.add("visible");
+      $("#traceProof").textContent = `${data.correlation_id}\n${data.trace_id || "trace unavailable"}`;
+      $("#promptMeta").textContent = `${data.prompt_label} · v${data.prompt_version}`;
+      $("#tokenMeta").textContent = `${data.tokens_in} → ${data.tokens_out}`;
+      $("#costMeta").textContent = `$${Number(data.cost_usd || 0).toFixed(6)}`;
+      $("#providerLabel").textContent = `${data.provider} · ${data.model}`;
+
+      const total = Math.max(data.rag_latency_ms + data.llm_latency_ms, 1);
+      $("#ragFill").style.width = `${Math.max((data.rag_latency_ms / total) * 100, 2)}%`;
+      $("#llmFill").style.width = `${Math.max((data.llm_latency_ms / total) * 100, 2)}%`;
+      $("#ragValue").textContent = `${data.rag_latency_ms} ms`;
+      $("#llmValue").textContent = `${data.llm_latency_ms} ms`;
+
+      if (data.trace_url) {
+        $("#traceLink").href = data.trace_url;
+        $("#traceLink").classList.add("visible");
+      } else {
+        $("#traceLink").classList.remove("visible");
+      }
+      $("#answerWrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    $("#chatForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = $("#message").value.trim();
+      if (!message) return;
+      const button = $("#askButton");
+      button.disabled = true;
+      button.textContent = "Tracing request...";
+      $("#traceProof").textContent = "Creating correlated trace";
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            session_id: sessionId,
+            feature: $("#feature").value,
+            message
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        renderResult(data);
+        await refreshMetrics();
+      } catch (error) {
+        $("#answer").classList.add("error");
+        $("#answer").textContent = `Request failed: ${error.message}`;
+        $("#answerWrap").classList.add("visible");
+        $("#traceProof").textContent = "No completed trace";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Run traced inference";
+      }
+    });
+
+    document.querySelectorAll("[data-prompt]").forEach((button) => {
+      button.addEventListener("click", () => {
+        $("#message").value = button.dataset.prompt;
+        $("#message").focus();
+      });
+    });
+
+    const carouselLines = [
+      "Every request leaves evidence.",
+      "The key stays on the server.",
+      "The trace opens with one click.",
+      "RAG and LLM latency stay separate."
+    ];
+    let carouselIndex = 0;
+    setInterval(() => {
+      carouselIndex = (carouselIndex + 1) % carouselLines.length;
+      $("#signalCarousel").textContent = carouselLines[carouselIndex];
+    }, 2800);
+
+    if (window.gsap && window.ScrollTrigger && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.registerPlugin(ScrollTrigger);
+      gsap.from(".hero-heading", { y: 50, opacity: 0, duration: 1.1, ease: "power3.out" });
+      gsap.from(".hero-grid", { y: 70, opacity: 0, duration: 1, delay: .25, ease: "power3.out" });
+      gsap.utils.toArray(".stack-card").forEach((card, index) => {
+        gsap.to(card, {
+          scale: 1 - index * .025,
+          opacity: 1 - index * .08,
+          scrollTrigger: { trigger: card, start: "top 70%", end: "bottom 20%", scrub: true }
+        });
+      });
+      const reveal = $(".reveal-copy");
+      reveal.innerHTML = reveal.textContent.split(" ").map((word) => `<span>${word} </span>`).join("");
+      gsap.fromTo(".reveal-copy span", { opacity: .12 }, {
+        opacity: 1,
+        stagger: .06,
+        scrollTrigger: { trigger: reveal, start: "top 80%", end: "bottom 45%", scrub: true }
+      });
+    }
+
+    refreshHealth();
+    refreshMetrics();
+    setInterval(refreshHealth, 10000);
+  </script>
+</body>
+</html>

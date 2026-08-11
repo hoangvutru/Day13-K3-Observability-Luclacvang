@@ -21,7 +21,8 @@
 - Tổng số traces: **ít nhất 17 trace thật** (12 trace prompt/rollback và 5 trace challenge).
 - Số PII leak còn lại: **0**.
 - Dashboard contract dùng nguồn chuẩn `data/logs.jsonl`; validator và thông số runtime được lưu tại [`evidence/validation-results.md`](evidence/validation-results.md).
-- Test: **25 passed**.
+- Test: **29 passed**.
+- Web UI demo tại `/`: gọi OpenRouter server-side, hiển thị model/provider, token/cost, prompt version, correlation ID, waterfall RAG/LLM và link trace Langfuse vừa tạo.
 
 ## 3. Logging và tracing
 

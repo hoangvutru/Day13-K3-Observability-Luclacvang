@@ -21,6 +21,15 @@ class ChatResponse(BaseModel):
     tokens_out: int
     cost_usd: float
     quality_score: float
+    trace_id: str | None = None
+    trace_url: str | None = None
+    model: str
+    provider: str
+    prompt_name: str
+    prompt_label: str
+    prompt_version: str
+    rag_latency_ms: int
+    llm_latency_ms: int
 
 
 class LogRecord(BaseModel):

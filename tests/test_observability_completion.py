@@ -65,3 +65,13 @@ def test_background_logs_receive_schema_defaults() -> None:
     assert result["correlation_id"] == "system-unscoped"
     assert result["service"]
     assert result["env"]
+
+
+def test_demo_ui_is_served_without_api_keys() -> None:
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Signal Room" in response.text
+    assert "OPENROUTER_API_KEY" not in response.text
+    assert "LANGFUSE_SECRET_KEY" not in response.text

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from structlog.contextvars import bind_contextvars
 
@@ -15,7 +17,7 @@ from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
-from .tracing import tracing_enabled
+from .tracing import get_langfuse_client, tracing_enabled
 
 configure_logging()
 log = get_logger()
@@ -36,11 +38,25 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
 app.add_middleware(CorrelationIdMiddleware)
+STATIC_DIR = Path(__file__).with_name("static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def demo_ui() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")
 async def health() -> dict:
-    return {"ok": True, "tracing_enabled": tracing_enabled(), "incidents": status()}
+    return {
+        "ok": True,
+        "tracing_enabled": tracing_enabled(),
+        "llm_provider": agent.provider,
+        "model": agent.model,
+        "openrouter_configured": bool(os.getenv("OPENROUTER_API_KEY")),
+        "incidents": status(),
+    }
 
 
 @app.get("/metrics")
@@ -72,6 +88,15 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             message=body.message,
             correlation_id=request.state.correlation_id,
         )
+        if os.getenv("LANGFUSE_FLUSH_EACH_REQUEST", "false").lower() == "true":
+            try:
+                await run_in_threadpool(get_langfuse_client().flush)
+            except Exception as flush_error:  # Observability must not break inference.
+                log.warning(
+                    "trace_flush_failed",
+                    service="api",
+                    error_type=type(flush_error).__name__,
+                )
         log.info(
             "response_sent",
             service="api",
@@ -81,6 +106,8 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             cost_usd=result.cost_usd,
             quality_score=result.quality_score,
             trace_id=result.trace_id,
+            model=result.model,
+            provider=result.provider,
             payload={"answer_preview": summarize_text(result.answer)},
         )
         return ChatResponse(
@@ -91,6 +118,15 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             tokens_out=result.tokens_out,
             cost_usd=result.cost_usd,
             quality_score=result.quality_score,
+            trace_id=result.trace_id,
+            trace_url=result.trace_url,
+            model=result.model,
+            provider=result.provider,
+            prompt_name=result.prompt_name,
+            prompt_label=result.prompt_label,
+            prompt_version=result.prompt_version,
+            rag_latency_ms=result.rag_latency_ms,
+            llm_latency_ms=result.llm_latency_ms,
         )
     except Exception as exc:  # pragma: no cover
         error_type = type(exc).__name__
