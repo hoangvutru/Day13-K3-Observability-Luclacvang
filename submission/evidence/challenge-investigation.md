@@ -19,3 +19,4 @@ Kết luận: `rag.retrieve` chiếm 2500/2656 ms (~94% total), trong khi reques
 
 - Fix đã thực hiện: tắt `rag_slow` bằng endpoint control; `/health` xác nhận tất cả incident flag về `false`.
 - Preventive measures: alert P95 > 3000 ms/10 phút; span riêng cho dependency; timeout/circuit breaker và fallback cache cho retrieval; canary + rollback cho thay đổi dependency.
+

@@ -73,3 +73,4 @@
 | Bùi Hữu Nghĩa | `challenge-investigation.md`, `REPORT.md`, `DEMO.md` và screenshots | `9e0c5d4` (commit evidence nhóm) | Điều tra Metrics → Traces → Logs và trình bày evidence kiểm chứng được |
 
 Automation bonus: `scripts/manage_prompts.py` quản lý prompt/rollback idempotent và `scripts/render_dashboard.py` tái tạo dashboard evidence trực tiếp từ log chuẩn.
+

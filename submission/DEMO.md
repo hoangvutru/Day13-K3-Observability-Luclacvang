@@ -41,3 +41,4 @@ python scripts/check_openrouter.py
 - PII phải scrub trước renderer/exporter; hash user ID là một chiều và không log ID thô.
 - Prompt label là con trỏ triển khai; version là bản bất biến. Rollback di chuyển label, không sửa lịch sử.
 - Alert symptom-based phản ánh ảnh hưởng người dùng; thêm thời gian duy trì và minimum traffic để giảm nhiễu.
+
