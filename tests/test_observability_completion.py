@@ -73,5 +73,7 @@ def test_demo_ui_is_served_without_api_keys() -> None:
 
     assert response.status_code == 200
     assert "Signal Room" in response.text
+    assert 'name="color-scheme" content="light"' in response.text
+    assert "Light editorial theme" in response.text
     assert "OPENROUTER_API_KEY" not in response.text
     assert "LANGFUSE_SECRET_KEY" not in response.text
