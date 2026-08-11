@@ -5,7 +5,15 @@
 - Tên nhóm: Lục Lạc Vàng (K3)
 - Repository URL: https://github.com/hoangvutru/Day13-K3-Observability-Luclacvang
 - Commit SHA cuối: dùng SHA của repository HEAD khi nộp; commit triển khai cụ thể được ghi ở mục 7.
-- Thành viên/vai trò: HuyHoangTran — Logging & PII; Tracing & Prompt Version; Dashboard/SLO/Alert; Incident/Report/Demo.
+
+| Thành viên | MSSV | Vai trò | Phạm vi phụ trách |
+|---|---|---|---|
+| Lâm Việt Hoàng | 2A202601067 | A — API & Middleware | CP1 middleware, correlation ID và exception handler mở rộng |
+| Lã Minh Đức | 2A202601261 | B — Security Engineer | CP1 PII scrubbing, regex patterns và kiểm chứng log không lộ PII |
+| Hà Nhật Khánh Duy | 2A202602031 | C — Metrics & Dashboard | CP1/CP2 `error_rate_pct` và dashboard 6 nhóm chỉ số |
+| Hoàng Tuấn Trung | 2A202601807 | D — SRE & Alerts Engineer | CP2 SLO, alert rules và alert runbook |
+| Trần Huy Hoàng | 2A202601709 | E1 — QA & Tracing | Load test, test hồi quy và trace cho RAG/LLM |
+| Bùi Hữu Nghĩa | 2A202601880 | E2 — Chief Investigator, Report & Demo | Điều tra challenge CP3, evidence, báo cáo và demo nhóm |
 
 ## 2. Kết quả kỹ thuật
 
@@ -54,8 +62,13 @@
 
 ## 7. Đóng góp cá nhân
 
-| Thành viên | Phần việc | Commit/PR | Điều đã học |
+| Thành viên | Phần việc/evidence | Commit/PR | Điều đã học |
 |---|---|---|---|
-| HuyHoangTran | Hoàn thiện toàn bộ logging, PII, trace/prompt, metrics, dashboard, SLO/alerts, challenge và report | `9a14d03` | Phân biệt metrics/trace/log; percentile; redaction trước export; prompt label/version và rollback; alert dựa trên symptom |
+| Lâm Việt Hoàng | `app/middleware.py`, correlation/response headers và exception flow | `9a14d03` (commit tích hợp nhóm) | Context isolation và correlation ID xuyên suốt request |
+| Lã Minh Đức | `app/pii.py`, `app/logging_config.py`, kiểm chứng redaction | `d98ea81`, `9a14d03` | Redaction phải chạy trước renderer/exporter; không log định danh thô |
+| Hà Nhật Khánh Duy | `app/metrics.py`, `config/dashboard.yaml`, dashboard validator | `9a14d03` (commit tích hợp nhóm) | P50/P95/P99, error rate, cost/token và quality proxy |
+| Hoàng Tuấn Trung | `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md` | `9a14d03` (commit tích hợp nhóm) | Alert symptom-based, duration/minimum traffic và runbook |
+| Trần Huy Hoàng | Load/challenge test, RAG/LLM spans, tests và prompt trace linkage | `9a14d03` | Metrics phát hiện, trace khoanh vùng và log chứng minh root cause |
+| Bùi Hữu Nghĩa | `challenge-investigation.md`, `REPORT.md`, `DEMO.md` và screenshots | `9e0c5d4` (commit evidence nhóm) | Điều tra Metrics → Traces → Logs và trình bày evidence kiểm chứng được |
 
 Automation bonus: `scripts/manage_prompts.py` quản lý prompt/rollback idempotent và `scripts/render_dashboard.py` tái tạo dashboard evidence trực tiếp từ log chuẩn.

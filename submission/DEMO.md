@@ -1,5 +1,14 @@
 # Demo 5 phút
 
+## Phân vai trình bày
+
+- Lâm Việt Hoàng: API, middleware và correlation ID.
+- Lã Minh Đức: PII redaction và log an toàn.
+- Hà Nhật Khánh Duy: metrics và dashboard contract 6 panel.
+- Hoàng Tuấn Trung: SLO, alerts và runbook.
+- Trần Huy Hoàng: load test, prompt traces và waterfall RAG/LLM.
+- Bùi Hữu Nghĩa: challenge root cause, fix, preventive measures và kết luận.
+
 1. Chạy API và mở `/health`: tracing bật, incident đều `false`.
 2. Chạy `load_test.py --concurrency 5`, sau đó `validate_logs.py`: chỉ ra correlation, metadata và redaction.
 3. Chạy `python scripts/validate_dashboard.py`, rồi đối chiếu 6 panel, đơn vị, time range 60 phút và threshold trong `config/dashboard.yaml`.
