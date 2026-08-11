@@ -20,6 +20,7 @@
     "quality_score": {"type": ["number", "null"]},
     "error_type": {"type": ["string", "null"]},
     "tool_name": {"type": ["string", "null"]},
+    "trace_id": {"type": ["string", "null"]},
     "payload": {"type": ["object", "null"]}
   }
 }

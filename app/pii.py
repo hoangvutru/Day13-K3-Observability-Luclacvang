@@ -8,7 +8,8 @@ PII_PATTERNS: dict[str, str] = {
     "phone_vn": r"(?<!\d)(?:\+84|0)(?:[ .-]?\d){9}(?!\d)",
     "cccd": r"\b\d{12}\b",
     "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-    # TODO: Add more patterns (e.g., Passport, Vietnamese address keywords)
+    "passport": r"(?i)\b(?:passport|h[oộ]\s*chi[eế]u)\s*(?:no\.?|number|s[oố])?\s*[:#-]?\s*[A-Z][0-9]{7,8}\b",
+    "address_vn": r"(?i)\b(?:địa\s*chỉ|dia\s*chi|address)\s*[:#-]\s*[^,;\n]{5,120}",
 }
 
 

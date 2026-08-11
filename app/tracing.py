@@ -3,6 +3,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
+# Older starter environments used LANGFUSE_BASE_URL; SDK v3 reads LANGFUSE_HOST.
+if not os.getenv("LANGFUSE_HOST") and os.getenv("LANGFUSE_BASE_URL"):
+    os.environ["LANGFUSE_HOST"] = os.environ["LANGFUSE_BASE_URL"].strip('"')
+
 try:
     from langfuse import get_client, observe
 

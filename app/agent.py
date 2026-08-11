@@ -9,6 +9,10 @@ from .mock_rag import retrieve
 from .pii import hash_user_id, summarize_text
 from .prompt_management import resolve_prompt
 from .tracing import get_langfuse_client, observe, tracing_enabled
+from .logging_config import get_logger
+
+
+log = get_logger()
 
 
 @dataclass
@@ -19,6 +23,7 @@ class AgentResult:
     tokens_out: int
     cost_usd: float
     quality_score: float
+    trace_id: str | None = None
 
 
 class LabAgent:
@@ -27,9 +32,24 @@ class LabAgent:
         self.llm = FakeLLM(model=model)
 
     @observe(as_type="generation", capture_input=False, capture_output=False)
-    def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
+    def run(
+        self,
+        user_id: str,
+        feature: str,
+        session_id: str,
+        message: str,
+        correlation_id: str | None = None,
+    ) -> AgentResult:
         started = time.perf_counter()
+        rag_started = time.perf_counter()
         docs = retrieve(message)
+        log.info(
+            "rag_completed",
+            service="agent",
+            tool_name="vector_store",
+            latency_ms=int((time.perf_counter() - rag_started) * 1000),
+            payload={"doc_count": len(docs)},
+        )
         langfuse_client = get_langfuse_client()
         prompt = resolve_prompt(
             langfuse_client,
@@ -38,21 +58,34 @@ class LabAgent:
             message=message,
             enabled=tracing_enabled(),
         )
+        llm_started = time.perf_counter()
         response = self.llm.generate(prompt.text)
+        log.info(
+            "llm_completed",
+            service="agent",
+            tool_name="fake_llm",
+            latency_ms=int((time.perf_counter() - llm_started) * 1000),
+            tokens_in=response.usage.input_tokens,
+            tokens_out=response.usage.output_tokens,
+        )
         quality_score = self._heuristic_quality(message, response.text, docs)
         latency_ms = int((time.perf_counter() - started) * 1000)
         cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
+
+        trace_metadata = {
+            "prompt_name": prompt.name,
+            "prompt_label": prompt.label,
+            "prompt_version": prompt.version,
+            "prompt_source": prompt.source,
+        }
+        if correlation_id:
+            trace_metadata["correlation_id"] = correlation_id
 
         langfuse_client.update_current_trace(
             user_id=hash_user_id(user_id),
             session_id=session_id,
             tags=["lab", feature, self.model],
-            metadata={
-                "prompt_name": prompt.name,
-                "prompt_label": prompt.label,
-                "prompt_version": prompt.version,
-                "prompt_source": prompt.source,
-            },
+            metadata=trace_metadata,
         )
         langfuse_client.update_current_generation(
             model=self.model,
@@ -81,6 +114,8 @@ class LabAgent:
             quality_score=quality_score,
         )
 
+        get_trace_id = getattr(langfuse_client, "get_current_trace_id", None)
+        trace_id = get_trace_id() if callable(get_trace_id) else None
         return AgentResult(
             answer=response.text,
             latency_ms=latency_ms,
@@ -88,6 +123,7 @@ class LabAgent:
             tokens_out=response.usage.output_tokens,
             cost_usd=cost_usd,
             quality_score=quality_score,
+            trace_id=trace_id,
         )
 
     def _estimate_cost(self, tokens_in: int, tokens_out: int) -> float:

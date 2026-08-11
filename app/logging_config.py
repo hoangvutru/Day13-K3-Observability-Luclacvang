@@ -22,16 +22,29 @@ class JsonlFileProcessor:
         return event_dict
 
 
+def add_schema_defaults(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """Keep background/startup logs valid when no request context exists."""
+    event_dict.setdefault("correlation_id", "system-unscoped")
+    event_dict.setdefault("env", os.getenv("APP_ENV", "dev"))
+    event_dict.setdefault("service", os.getenv("APP_NAME", "day13-observability-lab"))
+    return event_dict
+
+
 
 def scrub_event(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    payload = event_dict.get("payload")
-    if isinstance(payload, dict):
-        event_dict["payload"] = {
-            k: scrub_text(v) if isinstance(v, str) else v for k, v in payload.items()
-        }
-    if "event" in event_dict and isinstance(event_dict["event"], str):
-        event_dict["event"] = scrub_text(event_dict["event"])
-    return event_dict
+    def scrub_value(value: Any) -> Any:
+        if isinstance(value, str):
+            return scrub_text(value)
+        if isinstance(value, dict):
+            return {key: scrub_value(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [scrub_value(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(scrub_value(item) for item in value)
+        return value
+
+    # Scrub every string value, including exception details and nested payloads.
+    return {key: scrub_value(value) for key, value in event_dict.items()}
 
 
 
@@ -40,10 +53,10 @@ def configure_logging() -> None:
     structlog.configure(
         processors=[
             merge_contextvars,
+            add_schema_defaults,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
-            # TODO: Register your PII scrubbing processor here
-            # scrub_event,
+            scrub_event,
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             JsonlFileProcessor(),

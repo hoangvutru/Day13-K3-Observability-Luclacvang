@@ -4,7 +4,7 @@ slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    note: Replace with your group's target
+    note: 99.5% of rolling 28-day windows keep p95 response latency at or below 3000 ms.
   error_rate_pct:
     objective: 2
     target: 99.0
@@ -14,3 +14,4 @@ slis:
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    note: At least 95% of evaluated windows maintain the quality proxy at or above 0.75.
