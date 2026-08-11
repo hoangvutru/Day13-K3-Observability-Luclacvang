@@ -1,19 +1,19 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: high-chat-latency
+    severity: warning
+    condition: "response_sent latency p95 > 3000 ms for 10 minutes"
     type: symptom-based
-    owner: TODO
+    owner: platform-observability
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+  - name: elevated-chat-error-rate
+    severity: critical
+    condition: "request_failed / request_received > 2% for 5 minutes"
     type: symptom-based
-    owner: TODO
+    owner: api-oncall
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+  - name: quality-proxy-degradation
+    severity: warning
+    condition: "response_sent quality_score mean < 0.75 for 15 minutes"
     type: symptom-based
-    owner: TODO
+    owner: ai-product
     runbook: docs/alerts.md#alert-3
