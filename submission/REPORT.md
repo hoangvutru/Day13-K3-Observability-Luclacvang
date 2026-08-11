@@ -29,6 +29,7 @@
 - Trace baseline: `0203530208148c7d03ef7d8da14eb214`; trace candidate: `8606d1477904dc77aeda215c89feee49`.
 - Đã promote production lên v2 (`53e7478...`) rồi rollback production về v1 (`6d6f30c...`).
 - Inventory và link kiểm chứng: [`evidence/langfuse-prompts-traces.md`](evidence/langfuse-prompts-traces.md).
+- Visual API-verified (prompt transition + waterfall): [`evidence/langfuse-runtime-evidence.svg`](evidence/langfuse-runtime-evidence.svg).
 
 ## 5. Dashboard, SLO và alerts
 
@@ -52,6 +53,6 @@
 
 | Thành viên | Phần việc | Commit/PR | Điều đã học |
 |---|---|---|---|
-| HuyHoangTran | Hoàn thiện toàn bộ logging, PII, trace/prompt, metrics, dashboard, SLO/alerts, challenge và report | Commit triển khai Day 13 trong repository HEAD | Phân biệt metrics/trace/log; percentile; redaction trước export; prompt label/version và rollback; alert dựa trên symptom |
+| HuyHoangTran | Hoàn thiện toàn bộ logging, PII, trace/prompt, metrics, dashboard, SLO/alerts, challenge và report | `9a14d03` | Phân biệt metrics/trace/log; percentile; redaction trước export; prompt label/version và rollback; alert dựa trên symptom |
 
 Automation bonus: `scripts/manage_prompts.py` quản lý prompt/rollback idempotent và `scripts/render_dashboard.py` tái tạo dashboard evidence trực tiếp từ log chuẩn.

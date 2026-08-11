@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <style>
+    text { font-family: Inter, Segoe UI, Arial, sans-serif; fill: #eef4ff; }
+    .k { font-size: 14px; font-weight: 700; letter-spacing: 2px; fill: #67e8f9; }
+    .h { font-size: 34px; font-weight: 750; }
+    .t { font-size: 20px; font-weight: 650; }
+    .v { font-size: 42px; font-weight: 800; }
+    .s { font-size: 15px; fill: #9fb0ca; }
+    .mono { font-family: Consolas, monospace; font-size: 14px; fill: #c7d2fe; }
+  </style>
+  <rect width="1600" height="900" fill="#07111f"/>
+  <text x="55" y="48" class="k">LANGFUSE API-VERIFIED EVIDENCE · 2026-08-11</text>
+  <text x="55" y="98" class="h">Prompt rollout, rollback &amp; trace waterfall</text>
+  <text x="55" y="128" class="s">Project cmso2fnd803s7ad0cpj2r3l76 · Prompt day13-chat · input/output capture disabled for PII safety</text>
+
+  <g transform="translate(55 175)">
+    <rect width="455" height="235" rx="20" fill="#111d32" stroke="#294064"/>
+    <text x="28" y="42" class="t">Baseline</text><text x="425" y="42" text-anchor="end" class="s">labels</text>
+    <text x="28" y="105" class="v">v1</text>
+    <rect x="110" y="74" width="110" height="35" rx="17" fill="#164e63"/><text x="165" y="97" text-anchor="middle" class="s" fill="#cffafe">baseline</text>
+    <rect x="230" y="74" width="130" height="35" rx="17" fill="#14532d"/><text x="295" y="97" text-anchor="middle" class="s" fill="#dcfce7">production</text>
+    <text x="28" y="155" class="mono">0203530208148c7d03ef7d8da14eb214</text>
+    <text x="28" y="187" class="s">correlation req-00989680</text>
+    <text x="28" y="216" class="s">Final production state after rollback</text>
+  </g>
+  <g transform="translate(550 175)">
+    <rect width="455" height="235" rx="20" fill="#111d32" stroke="#294064"/>
+    <text x="28" y="42" class="t">Candidate</text><text x="425" y="42" text-anchor="end" class="s">label</text>
+    <text x="28" y="105" class="v">v2</text>
+    <rect x="110" y="74" width="120" height="35" rx="17" fill="#4c1d95"/><text x="170" y="97" text-anchor="middle" class="s" fill="#ede9fe">candidate</text>
+    <text x="28" y="155" class="mono">8606d1477904dc77aeda215c89feee49</text>
+    <text x="28" y="187" class="s">correlation req-00989685</text>
+    <text x="28" y="216" class="s">Concise-format prompt candidate</text>
+  </g>
+  <g transform="translate(1045 175)">
+    <rect width="500" height="235" rx="20" fill="#111d32" stroke="#294064"/>
+    <text x="28" y="42" class="t">Verified transition</text>
+    <text x="28" y="91" class="s">PROMOTE</text><text x="128" y="91" class="mono">production → v2</text>
+    <text x="28" y="122" class="mono">53e7478db6f2cc75d11bdbe4a3379f74</text>
+    <text x="28" y="163" class="s">ROLLBACK</text><text x="128" y="163" class="mono">production → v1</text>
+    <text x="28" y="194" class="mono">6d6f30cbdf90b8c193528b559a624b25</text>
+  </g>
+
+  <g transform="translate(55 455)">
+    <rect width="1490" height="380" rx="20" fill="#111d32" stroke="#294064"/>
+    <text x="28" y="46" class="t">Challenge trace waterfall · 3735d4355029f97df3a7e3404c15933b</text>
+    <text x="28" y="77" class="s">correlation req-42c65d4b · total 2656 ms · affected feature refund</text>
+    <text x="28" y="130" class="s">LabAgent.run</text>
+    <rect x="190" y="108" width="1240" height="34" rx="8" fill="#312e81"/>
+    <text x="205" y="131" class="mono">2656 ms</text>
+    <text x="28" y="203" class="s">rag.retrieve</text>
+    <rect x="190" y="181" width="1167" height="34" rx="8" fill="#b45309"/>
+    <text x="205" y="204" class="mono">2500 ms · vector_store · root cause (94%)</text>
+    <text x="28" y="276" class="s">llm.generate</text>
+    <rect x="1357" y="254" width="70" height="34" rx="8" fill="#047857"/>
+    <text x="1190" y="277" class="mono">~150 ms</text>
+    <line x1="190" y1="326" x2="1430" y2="326" stroke="#475569"/>
+    <text x="190" y="352" class="s">0 ms</text><text x="1430" y="352" text-anchor="end" class="s">2656 ms</text>
+  </g>
+</svg>
