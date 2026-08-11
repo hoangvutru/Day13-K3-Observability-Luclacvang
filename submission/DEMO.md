@@ -1,22 +1,19 @@
 # Demo 5 phút
 
-## Chạy Web UI với OpenRouter thật
+## Chạy Web UI với mock LLM
 
-Thêm các biến sau vào `.env` (không chiếu hoặc commit giá trị key):
+Ứng dụng luôn dùng mock LLM nội bộ, nên không cần API key LLM nào. Chỉ cần bật Langfuse nếu muốn xem trace:
 
 ```dotenv
-LLM_PROVIDER=openrouter
-OPENROUTER_API_KEY=<your-openrouter-key>
-OPENROUTER_MODEL=openrouter/free
 LANGFUSE_FLUSH_EACH_REQUEST=true
 ```
 
 Khởi động lại API và mở `http://127.0.0.1:8000`. Hỏi trực tiếp trên giao diện; kết quả sẽ hiện provider/model, token, cost, prompt version, correlation ID, waterfall RAG/LLM và nút mở trace Langfuse vừa tạo.
 
-Trước khi chiếu màn hình, xác minh key thật mà không in giá trị key:
+Trước khi chiếu màn hình, kiểm tra API đang dùng mock LLM:
 
 ```powershell
-python scripts/check_openrouter.py
+python scripts/check_mock_llm.py
 ```
 
 ## Phân vai trình bày

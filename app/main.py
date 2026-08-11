@@ -54,7 +54,6 @@ async def health() -> dict:
         "tracing_enabled": tracing_enabled(),
         "llm_provider": agent.provider,
         "model": agent.model,
-        "openrouter_configured": bool(os.getenv("OPENROUTER_API_KEY")),
         "incidents": status(),
     }
 
