@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from .logging_config import configure_logging, get_logger
 from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
-from .schemas import ChatRequest, ChatResponse
+from .schemas import ChatRequest, ChatResponse, LocalTrace, TraceLogEntry, TraceObservation
 from .tracing import get_langfuse_client, tracing_enabled
 
 configure_logging()
@@ -106,8 +107,137 @@ async def trace_status(trace_id: str) -> dict:
     return await run_in_threadpool(_lookup_trace, normalized)
 
 
+def _build_local_trace(result, *, feature: str) -> LocalTrace:
+    """Build a PII-safe trace snapshot for immediate rendering in the demo UI."""
+    rag_finished_ms = result.rag_latency_ms
+    llm_finished_ms = result.llm_offset_ms + result.llm_latency_ms
+    return LocalTrace(
+        status="completed",
+        duration_ms=result.latency_ms,
+        observations=[
+            TraceObservation(
+                id="run",
+                name="run",
+                kind="generation",
+                status="completed",
+                offset_ms=0,
+                duration_ms=result.latency_ms,
+                metadata={
+                    "feature": feature,
+                    "provider": result.provider,
+                    "model": result.model,
+                    "prompt": f"{result.prompt_name}:{result.prompt_label}:v{result.prompt_version}",
+                    "prompt_source": result.prompt_source,
+                },
+            ),
+            TraceObservation(
+                id="rag.retrieve",
+                parent_id="run",
+                name="rag.retrieve",
+                kind="span",
+                status="completed",
+                offset_ms=0,
+                duration_ms=result.rag_latency_ms,
+                metadata={"tool": "vector_store", "doc_count": result.doc_count},
+            ),
+            TraceObservation(
+                id="llm.generate",
+                parent_id="run",
+                name="llm.generate",
+                kind="generation",
+                status="completed",
+                offset_ms=result.llm_offset_ms,
+                duration_ms=result.llm_latency_ms,
+                metadata={
+                    "provider": result.provider,
+                    "model": result.model,
+                    "input_tokens": result.tokens_in,
+                    "output_tokens": result.tokens_out,
+                    "cost_usd": result.cost_usd,
+                },
+            ),
+        ],
+        logs=[
+            TraceLogEntry(
+                offset_ms=0,
+                level="info",
+                service="api",
+                event="request_received",
+                fields={"feature": feature, "payload": "PII-safe preview"},
+            ),
+            TraceLogEntry(
+                offset_ms=rag_finished_ms,
+                level="info",
+                service="agent",
+                event="rag_completed",
+                fields={"tool": "vector_store", "doc_count": result.doc_count, "latency_ms": result.rag_latency_ms},
+            ),
+            TraceLogEntry(
+                offset_ms=llm_finished_ms,
+                level="info",
+                service="agent",
+                event="llm_completed",
+                fields={"model": result.model, "tokens_in": result.tokens_in, "tokens_out": result.tokens_out, "latency_ms": result.llm_latency_ms},
+            ),
+            TraceLogEntry(
+                offset_ms=result.latency_ms,
+                level="info",
+                service="api",
+                event="response_sent",
+                fields={"status": 200, "quality_score": result.quality_score, "cost_usd": result.cost_usd},
+            ),
+        ],
+    )
+
+
+def _build_error_trace(*, error_type: str, duration_ms: int, feature: str) -> LocalTrace:
+    """Build a safe trace for failed requests without exposing exception details."""
+    return LocalTrace(
+        status="error",
+        duration_ms=duration_ms,
+        observations=[
+            TraceObservation(
+                id="run",
+                name="run",
+                kind="generation",
+                status="error",
+                offset_ms=0,
+                duration_ms=duration_ms,
+                metadata={"feature": feature, "error_type": error_type},
+            ),
+            TraceObservation(
+                id="rag.retrieve",
+                parent_id="run",
+                name="rag.retrieve",
+                kind="span",
+                status="error",
+                offset_ms=0,
+                duration_ms=duration_ms,
+                metadata={"tool": "vector_store", "error_type": error_type},
+            ),
+        ],
+        logs=[
+            TraceLogEntry(
+                offset_ms=0,
+                level="info",
+                service="api",
+                event="request_received",
+                fields={"feature": feature, "payload": "PII-safe preview"},
+            ),
+            TraceLogEntry(
+                offset_ms=duration_ms,
+                level="error",
+                service="api",
+                event="request_failed",
+                fields={"status": 500, "error_type": error_type},
+            ),
+        ],
+    )
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
+    request_started = time.perf_counter()
     bind_contextvars(
         user_id_hash=hash_user_id(body.user_id),
         session_id=body.session_id,
@@ -169,17 +299,39 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             prompt_version=result.prompt_version,
             rag_latency_ms=result.rag_latency_ms,
             llm_latency_ms=result.llm_latency_ms,
+            local_trace=_build_local_trace(result, feature=body.feature),
         )
     except Exception as exc:  # pragma: no cover
         error_type = type(exc).__name__
+        duration_ms = int((time.perf_counter() - request_started) * 1000)
         record_error(error_type)
         log.error(
             "request_failed",
             service="api",
             error_type=error_type,
-            payload={"detail": str(exc), "message_preview": summarize_text(body.message)},
+            latency_ms=duration_ms,
+            payload={"message_preview": summarize_text(body.message)},
         )
-        raise HTTPException(status_code=500, detail=error_type) from exc
+        if os.getenv("LANGFUSE_FLUSH_EACH_REQUEST", "false").lower() == "true":
+            try:
+                await run_in_threadpool(get_langfuse_client().flush)
+            except Exception:
+                pass
+        error_trace = _build_error_trace(
+            error_type=error_type,
+            duration_ms=duration_ms,
+            feature=body.feature,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": error_type,
+                "message": "Inference failed safely. Inspect the local error trace.",
+                "correlation_id": request.state.correlation_id,
+                "trace_id": None,
+                "local_trace": error_trace.model_dump(mode="json"),
+            },
+        )
 
 
 @app.post("/incidents/{name}/enable")

@@ -13,6 +13,32 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
 
 
+class TraceObservation(BaseModel):
+    id: str
+    parent_id: str | None = None
+    name: str
+    kind: Literal["span", "generation"]
+    status: Literal["completed", "error"]
+    offset_ms: int
+    duration_ms: int
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TraceLogEntry(BaseModel):
+    offset_ms: int
+    level: Literal["info", "warning", "error"]
+    service: str
+    event: str
+    fields: dict[str, Any] = Field(default_factory=dict)
+
+
+class LocalTrace(BaseModel):
+    status: Literal["completed", "error"]
+    duration_ms: int
+    observations: list[TraceObservation]
+    logs: list[TraceLogEntry]
+
+
 class ChatResponse(BaseModel):
     answer: str
     correlation_id: str
@@ -30,6 +56,7 @@ class ChatResponse(BaseModel):
     prompt_version: str
     rag_latency_ms: int
     llm_latency_ms: int
+    local_trace: LocalTrace
 
 
 class LogRecord(BaseModel):

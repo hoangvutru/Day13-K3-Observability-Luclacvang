@@ -4,14 +4,23 @@ from app.llm_factory import build_llm
 from app.mock_llm import FakeLLM
 
 
-def test_factory_always_uses_mock_llm_even_when_openrouter_env_is_set(monkeypatch) -> None:
+def test_factory_uses_openrouter_when_provider_and_key_are_set(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "must-not-be-used")
 
     llm = build_llm()
 
+    assert llm.provider_name == "openrouter"
+    assert llm.model == "openrouter/free"
+
+
+def test_factory_uses_mock_in_keyless_auto_mode(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "auto")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    llm = build_llm()
+
     assert llm.provider_name == "fake"
-    assert llm.model == "fake-observability-llm"
 
 
 def test_mock_llm_answers_the_question_using_retrieved_context() -> None:

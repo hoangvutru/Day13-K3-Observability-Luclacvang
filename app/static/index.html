@@ -126,7 +126,7 @@
     .panel-head { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: 28px; }
     .panel-head h2 { margin: 0; font-size: 25px; letter-spacing: -.035em; }
     .provider-label { color: var(--cyan); font-size: 13px; text-align: right; }
-    .quick-prompts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: 16px; background: var(--line); border: 1px solid var(--line); }
+    .quick-prompts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 16px; background: var(--line); border: 1px solid var(--line); }
     .quick-prompts button {
       min-height: 52px;
       padding: 10px 14px;
@@ -181,6 +181,8 @@
     .rail-top { padding: 34px; border-bottom: 1px solid var(--line); }
     .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
     .trace-proof { margin: 15px 0 0; font-family: Consolas, monospace; color: var(--cyan); font-size: 14px; overflow-wrap: anywhere; }
+    .proof-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; color: var(--lime); font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .proof-status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 5px rgba(111, 147, 28, .12); }
     .waterfall { padding: 34px; flex: 1; }
     .waterfall h3 { margin: 0 0 28px; font-size: 20px; }
     .span { display: grid; grid-template-columns: 82px 1fr 72px; gap: 12px; align-items: center; margin: 18px 0; font-size: 13px; color: var(--muted); }
@@ -212,6 +214,48 @@
     .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
     .meta-cell { padding: 20px 16px; background: #0b1d29; min-width: 0; }
     .meta-cell strong { display: block; margin-top: 7px; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .trace-inspector {
+      display: none;
+      margin-top: 24px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+      background: rgba(255,254,250,.96);
+      box-shadow: 0 34px 100px rgba(35,52,58,.12);
+    }
+    .trace-inspector.visible { display: block; }
+    .inspector-head { display: flex; justify-content: space-between; gap: 28px; align-items: end; padding: 28px 32px; border-bottom: 1px solid var(--line); }
+    .inspector-head h2 { margin: 7px 0 0; font-size: clamp(1.6rem, 3vw, 2.8rem); letter-spacing: -.045em; }
+    .inspector-identity { max-width: 430px; text-align: right; font: 12px/1.55 Consolas, monospace; color: var(--muted); overflow-wrap: anywhere; }
+    .inspector-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(360px, 5fr); }
+    .trace-tree, .log-panel { min-width: 0; padding: 30px 32px 34px; }
+    .trace-tree { border-right: 1px solid var(--line); }
+    .inspector-title { display: flex; justify-content: space-between; margin-bottom: 20px; color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .observation { border-top: 1px solid var(--line); }
+    .observation:last-child { border-bottom: 1px solid var(--line); }
+    .observation summary { display: grid; grid-template-columns: minmax(140px, .8fr) minmax(180px, 1.4fr) 78px; gap: 18px; align-items: center; min-height: 68px; cursor: pointer; list-style: none; }
+    .observation summary::-webkit-details-marker { display: none; }
+    .observation-name { display: flex; gap: 10px; align-items: center; min-width: 0; font: 700 13px/1.3 Consolas, monospace; }
+    .observation.child .observation-name { padding-left: 24px; }
+    .observation.child .observation-name::before { content: "↳"; color: var(--muted); }
+    .kind-chip { padding: 4px 7px; color: var(--cyan); background: rgba(8,127,123,.08); font: 700 10px/1 Consolas, monospace; text-transform: uppercase; }
+    .timeline { position: relative; height: 12px; background: rgba(16,32,39,.07); overflow: hidden; }
+    .timeline-bar { position: absolute; top: 0; bottom: 0; min-width: 4px; background: var(--cyan); }
+    .observation.child .timeline-bar { background: var(--blue); }
+    .observation.error .timeline-bar { background: var(--coral); }
+    .observation.error .kind-chip { color: var(--coral); background: rgba(200,77,56,.09); }
+    .duration { text-align: right; color: var(--muted); font: 12px Consolas, monospace; }
+    .observation-meta { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 0 18px; }
+    .observation-meta span { padding: 7px 9px; background: #eef4f1; color: var(--muted); font: 11px Consolas, monospace; overflow-wrap: anywhere; }
+    .log-stream { border: 1px solid var(--line); background: #f6f8f5; }
+    .log-row { display: grid; grid-template-columns: 66px 44px minmax(100px, .7fr) minmax(150px, 1.3fr); gap: 10px; padding: 12px; border-bottom: 1px solid var(--line); font: 11px/1.45 Consolas, monospace; }
+    .log-row:last-child { border-bottom: 0; }
+    .log-offset, .log-service { color: var(--muted); }
+    .log-level { color: var(--cyan); font-weight: 700; text-transform: uppercase; }
+    .log-row.error .log-level, .log-row.error .log-event strong { color: var(--coral); }
+    .log-event strong { display: block; color: var(--text); }
+    .log-fields { display: block; margin-top: 4px; color: var(--muted); white-space: normal; overflow-wrap: anywhere; }
 
     .interest { padding: 170px 0; }
     .chapter-title { max-width: 980px; margin: 0 0 70px; font-size: clamp(2.4rem, 5vw, 5rem); line-height: 1; letter-spacing: -.055em; }
@@ -266,7 +310,10 @@
       .nav-links { display: none; }
       .nav-inner { grid-template-columns: 1fr 1fr; }
       .hero { padding-top: 100px; }
-      .hero-grid, .desire-layout, .footer-grid { grid-template-columns: 1fr; }
+      .hero-grid, .inspector-grid, .desire-layout, .footer-grid { grid-template-columns: 1fr; }
+      .trace-tree { border-right: 0; border-bottom: 1px solid var(--line); }
+      .inspector-head { align-items: start; flex-direction: column; }
+      .inspector-identity { text-align: left; }
       .metric-card:nth-child(n) { grid-column: span 12; }
       .desire-copy { position: static; }
       .quick-prompts { grid-template-columns: 1fr; }
@@ -362,7 +409,7 @@
   <main>
     <section class="hero shell" id="ask">
       <h1 class="hero-heading">Ask the model. <span class="micro-visual" aria-hidden="true"></span> <span class="soft">Watch every signal answer back.</span></h1>
-      <p class="hero-copy">Một phòng demo duy nhất cho mock LLM, Langfuse tracing và structured logs. Mỗi câu hỏi tạo ra một bằng chứng có correlation ID, prompt version và waterfall RAG–LLM.</p>
+      <p class="hero-copy">Một phòng demo duy nhất cho OpenRouter LLM, Langfuse tracing và structured logs. Mỗi câu hỏi tạo ra một bằng chứng có correlation ID, prompt version và waterfall RAG–LLM.</p>
 
       <div class="hero-grid">
         <section class="chat-panel" aria-labelledby="chatTitle">
@@ -374,6 +421,7 @@
             <button type="button" data-prompt="Explain how metrics, traces, and logs work together.">Observability flow</button>
             <button type="button" data-prompt="What is the refund policy and required evidence?">Refund policy</button>
             <button type="button" data-prompt="How should an AI API protect PII in production logs?">PII protection</button>
+            <button type="button" data-prompt="Trigger a vector store failure for the observability demo.">Trigger failure</button>
           </div>
           <form id="chatForm">
             <label class="eyebrow" for="message">Your question</label>
@@ -398,26 +446,47 @@
           <div class="rail-top">
             <div class="eyebrow">Trace identity</div>
             <div class="trace-proof" id="traceProof">Waiting for a request</div>
+            <div class="proof-status" id="proofStatus">Local proof pending</div>
           </div>
           <div class="waterfall">
             <h3>Request waterfall</h3>
             <div class="span"><span>RAG</span><div class="track"><div class="fill rag" id="ragFill"></div></div><span class="span-value" id="ragValue">—</span></div>
             <div class="span"><span>LLM</span><div class="track"><div class="fill llm" id="llmFill"></div></div><span class="span-value" id="llmValue">—</span></div>
           </div>
-          <a class="trace-link" id="traceLink" target="_blank" rel="noreferrer">Open live trace in Langfuse</a>
+          <a class="trace-link" id="traceLink" target="_blank" rel="noreferrer">Optional: open private Langfuse trace</a>
           <div class="meta-grid">
             <div class="meta-cell"><span class="eyebrow">Prompt</span><strong id="promptMeta">—</strong></div>
-            <div class="meta-cell"><span class="eyebrow">Tokens</span><strong id="tokenMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Input → Output</span><strong id="tokenMeta">—</strong></div>
             <div class="meta-cell"><span class="eyebrow">Cost</span><strong id="costMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Total latency</span><strong id="latencyMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Quality</span><strong id="qualityMeta">—</strong></div>
+            <div class="meta-cell"><span class="eyebrow">Privacy</span><strong id="privacyMeta">PII scrubbed</strong></div>
           </div>
         </aside>
       </div>
+
+      <section class="trace-inspector" id="traceInspector" aria-live="polite" aria-label="Local trace and structured logs">
+        <header class="inspector-head">
+          <div><div class="eyebrow">Immediate observability proof</div><h2>Trace waterfall and correlated logs</h2></div>
+          <div class="inspector-identity" id="inspectorIdentity">Run a request to inspect its spans.</div>
+        </header>
+        <div class="inspector-grid">
+          <div class="trace-tree">
+            <div class="inspector-title"><span>Observation tree</span><span id="traceDuration">—</span></div>
+            <div id="observationList"></div>
+          </div>
+          <div class="log-panel">
+            <div class="inspector-title"><span>Structured logs</span><span>PII-safe</span></div>
+            <div class="log-stream" id="logStream"></div>
+          </div>
+        </div>
+      </section>
     </section>
 
     <div class="signal-marquee" aria-hidden="true">
       <div class="marquee-track">
-        <span>Mock LLM inference</span><span>Langfuse trace proof</span><span>Structured JSON logs</span><span>PII-safe metadata</span>
-        <span>Mock LLM inference</span><span>Langfuse trace proof</span><span>Structured JSON logs</span><span>PII-safe metadata</span>
+        <span>OpenRouter inference</span><span>Langfuse trace proof</span><span>Structured JSON logs</span><span>PII-safe metadata</span>
+        <span>OpenRouter inference</span><span>Langfuse trace proof</span><span>Structured JSON logs</span><span>PII-safe metadata</span>
       </div>
     </div>
 
@@ -447,8 +516,8 @@
             </div>
           </article>
           <article class="stack-card">
-            <h3>Mock LLM, không cần API key</h3>
-            <p>Inference runs locally with deterministic mock behavior. The browser receives only safe inference metadata, while Langfuse captures usage and cost without raw prompt/output capture.</p>
+            <h3>Real LLM via OpenRouter</h3>
+            <p>The API key stays on the server. The browser receives only safe inference metadata, while Langfuse captures usage and cost without raw prompt/output capture.</p>
           </article>
           <article class="stack-card">
             <h3>Incident-ready by design</h3>
@@ -472,7 +541,6 @@
     const $ = (selector) => document.querySelector(selector);
     const sessionId = sessionStorage.getItem("signal-session") || `web-${crypto.randomUUID()}`;
     const userId = localStorage.getItem("signal-user") || `demo-${crypto.randomUUID()}`;
-    let tracePollToken = 0;
     sessionStorage.setItem("signal-session", sessionId);
     localStorage.setItem("signal-user", userId);
 
@@ -498,32 +566,91 @@
       } catch (_) { /* Metrics are supplementary to the chat demo. */ }
     }
 
-    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+    function renderTraceInspector(data) {
+      const trace = data.local_trace;
+      if (!trace) return;
+      const total = Math.max(trace.duration_ms, 1);
+      $("#inspectorIdentity").textContent = `${data.correlation_id} · ${data.trace_id || "local-only"}`;
+      $("#traceDuration").textContent = `${trace.duration_ms} ms · ${trace.status}`;
 
-    async function waitForTrace(traceId, fallbackUrl, pollToken) {
-      const link = $("#traceLink");
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        if (pollToken !== tracePollToken) return;
-        try {
-          const response = await fetch(`/traces/${encodeURIComponent(traceId)}/status`, {
-            cache: "no-store"
-          });
-          const status = await response.json();
-          if (response.ok && status.ready) {
-            link.href = status.trace_url || fallbackUrl;
-            link.textContent = `Open live trace in Langfuse · ${status.observations} observations`;
-            link.classList.add("visible");
-            link.classList.remove("pending");
-            return;
-          }
-        } catch (_) { /* Keep polling while Langfuse finishes indexing. */ }
-        link.textContent = `Langfuse is indexing the trace · attempt ${attempt + 1}`;
-        await wait(Math.min(1000 + attempt * 150, 2500));
-      }
-      if (pollToken === tracePollToken) {
-        link.textContent = "Trace is still indexing · wait and retry the request";
-        link.classList.add("visible", "pending");
-      }
+      const observationList = $("#observationList");
+      observationList.replaceChildren();
+      trace.observations.forEach((observation) => {
+        const details = document.createElement("details");
+        details.className = `observation${observation.parent_id ? " child" : ""}${observation.status === "error" ? " error" : ""}`;
+        details.open = !observation.parent_id;
+
+        const summary = document.createElement("summary");
+        const name = document.createElement("span");
+        name.className = "observation-name";
+        const nameText = document.createElement("span");
+        nameText.textContent = observation.name;
+        const kind = document.createElement("span");
+        kind.className = "kind-chip";
+        kind.textContent = observation.kind;
+        name.append(nameText, kind);
+
+        const timeline = document.createElement("span");
+        timeline.className = "timeline";
+        const bar = document.createElement("span");
+        bar.className = "timeline-bar";
+        bar.style.left = `${Math.min((observation.offset_ms / total) * 100, 98)}%`;
+        bar.style.width = `${Math.max((observation.duration_ms / total) * 100, 1)}%`;
+        timeline.append(bar);
+
+        const duration = document.createElement("span");
+        duration.className = "duration";
+        duration.textContent = `${observation.duration_ms} ms`;
+        summary.append(name, timeline, duration);
+
+        const metadata = document.createElement("div");
+        metadata.className = "observation-meta";
+        Object.entries(observation.metadata || {}).forEach(([key, value]) => {
+          const item = document.createElement("span");
+          item.textContent = `${key}=${value}`;
+          metadata.append(item);
+        });
+        details.append(summary, metadata);
+        observationList.append(details);
+      });
+
+      const logStream = $("#logStream");
+      logStream.replaceChildren();
+      trace.logs.forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = `log-row${entry.level === "error" ? " error" : ""}`;
+        const offset = document.createElement("span");
+        offset.className = "log-offset";
+        offset.textContent = `+${entry.offset_ms}ms`;
+        const level = document.createElement("span");
+        level.className = "log-level";
+        level.textContent = entry.level;
+        const service = document.createElement("span");
+        service.className = "log-service";
+        service.textContent = entry.service;
+        const event = document.createElement("span");
+        event.className = "log-event";
+        const eventName = document.createElement("strong");
+        eventName.textContent = entry.event;
+        const fields = document.createElement("span");
+        fields.className = "log-fields";
+        fields.textContent = JSON.stringify(entry.fields || {});
+        event.append(eventName, fields);
+        row.append(offset, level, service, event);
+        logStream.append(row);
+      });
+      $("#traceInspector").classList.add("visible");
+    }
+
+    function renderErrorResult(data, status) {
+      $("#answer").classList.add("error");
+      $("#answer").textContent = `${data.message || "Request failed safely."} (${data.detail || `HTTP ${status}`})`;
+      $("#answerWrap").classList.add("visible");
+      $("#traceProof").textContent = `${data.correlation_id || "correlation unavailable"}\nerror trace`;
+      $("#proofStatus").textContent = "Local error trace ready";
+      $("#traceLink").classList.remove("visible", "pending");
+      renderTraceInspector(data);
+      $("#answerWrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     function renderResult(data) {
@@ -531,10 +658,14 @@
       $("#answer").textContent = data.answer;
       $("#answerWrap").classList.add("visible");
       $("#traceProof").textContent = `${data.correlation_id}\n${data.trace_id || "trace unavailable"}`;
+      $("#proofStatus").textContent = "Local trace proof ready";
       $("#promptMeta").textContent = `${data.prompt_label} · v${data.prompt_version}`;
       $("#tokenMeta").textContent = `${data.tokens_in} → ${data.tokens_out}`;
       $("#costMeta").textContent = `$${Number(data.cost_usd || 0).toFixed(6)}`;
+      $("#latencyMeta").textContent = `${data.latency_ms} ms`;
+      $("#qualityMeta").textContent = Number(data.quality_score || 0).toFixed(2);
       $("#providerLabel").textContent = `${data.provider} · ${data.model}`;
+      renderTraceInspector(data);
 
       const total = Math.max(data.rag_latency_ms + data.llm_latency_ms, 1);
       $("#ragFill").style.width = `${Math.max((data.rag_latency_ms / total) * 100, 2)}%`;
@@ -542,13 +673,11 @@
       $("#ragValue").textContent = `${data.rag_latency_ms} ms`;
       $("#llmValue").textContent = `${data.llm_latency_ms} ms`;
 
-      tracePollToken += 1;
-      const currentPollToken = tracePollToken;
       if (data.trace_id && data.trace_url) {
-        $("#traceLink").removeAttribute("href");
-        $("#traceLink").textContent = "Langfuse is indexing the trace";
-        $("#traceLink").classList.add("visible", "pending");
-        waitForTrace(data.trace_id, data.trace_url, currentPollToken);
+        $("#traceLink").href = data.trace_url;
+        $("#traceLink").textContent = "Optional: open private Langfuse trace · sign-in required";
+        $("#traceLink").classList.add("visible");
+        $("#traceLink").classList.remove("pending");
       } else {
         $("#traceLink").classList.remove("visible", "pending");
       }
@@ -563,6 +692,7 @@
       button.disabled = true;
       button.textContent = "Tracing request...";
       $("#traceProof").textContent = "Creating correlated trace";
+      $("#proofStatus").textContent = "Building local proof";
       try {
         const response = await fetch("/chat", {
           method: "POST",
@@ -575,7 +705,11 @@
           })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        if (!response.ok) {
+          renderErrorResult(data, response.status);
+          await refreshMetrics();
+          return;
+        }
         renderResult(data);
         await refreshMetrics();
       } catch (error) {
@@ -583,6 +717,7 @@
         $("#answer").textContent = `Request failed: ${error.message}`;
         $("#answerWrap").classList.add("visible");
         $("#traceProof").textContent = "No completed trace";
+        $("#proofStatus").textContent = "Local proof failed";
       } finally {
         button.disabled = false;
         button.textContent = "Run traced inference";

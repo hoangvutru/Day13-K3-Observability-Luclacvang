@@ -76,8 +76,14 @@ def test_demo_ui_is_served_without_api_keys() -> None:
     assert "Signal Room" in response.text
     assert 'name="color-scheme" content="light"' in response.text
     assert "Light editorial theme" in response.text
-    assert "waitForTrace" in response.text
-    assert "/traces/${encodeURIComponent(traceId)}/status" in response.text
+    assert "Local trace proof ready" in response.text
+    assert "Optional: open private Langfuse trace" in response.text
+    assert "waitForTrace" not in response.text
+    assert "Trace waterfall and correlated logs" in response.text
+    assert 'id="logStream"' in response.text
+    assert "renderTraceInspector" in response.text
+    assert "Trigger a vector store failure for the observability demo." in response.text
+    assert "Local error trace ready" in response.text
     assert "OPENROUTER_API_KEY" not in response.text
     assert "LANGFUSE_SECRET_KEY" not in response.text
 

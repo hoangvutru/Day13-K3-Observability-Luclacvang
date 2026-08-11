@@ -30,8 +30,11 @@ class AgentResult:
     prompt_name: str = "unknown"
     prompt_label: str = "unknown"
     prompt_version: str = "unknown"
+    prompt_source: str = "unknown"
+    doc_count: int = 0
     rag_latency_ms: int = 0
     llm_latency_ms: int = 0
+    llm_offset_ms: int = 0
 
 
 class LabAgent:
@@ -69,6 +72,7 @@ class LabAgent:
             enabled=tracing_enabled(),
         )
         llm_started = time.perf_counter()
+        llm_offset_ms = int((llm_started - started) * 1000)
         response = self.llm.generate(prompt.text)
         llm_latency_ms = int((time.perf_counter() - llm_started) * 1000)
         log.info(
@@ -165,8 +169,11 @@ class LabAgent:
             prompt_name=prompt.name,
             prompt_label=prompt.label,
             prompt_version=prompt.version,
+            prompt_source=prompt.source,
+            doc_count=len(docs),
             rag_latency_ms=rag_latency_ms,
             llm_latency_ms=llm_latency_ms,
+            llm_offset_ms=llm_offset_ms,
         )
 
     def _estimate_cost(self, tokens_in: int, tokens_out: int) -> float:
