@@ -8,7 +8,7 @@
 
 | Thành viên | MSSV | Vai trò | Phạm vi phụ trách |
 |---|---|---|---|
-| Lâm Việt Hoàng | 2A202601067 | A — API & Middleware | CP1 middleware, correlation ID và exception handler mở rộng |
+| Lâm Việt Hoàng | 2A202601067 | Logging & PII — API/Middleware | CP1 correlation ID, request context, response headers và global exception handler |
 | Lã Minh Đức | 2A202601261 | B — Security Engineer | CP1 PII scrubbing, regex patterns và kiểm chứng log không lộ PII |
 | Hà Nhật Khánh Duy | 2A202602031 | C — Metrics & Dashboard | CP1/CP2 `error_rate_pct` và dashboard 6 nhóm chỉ số |
 | Hoàng Tuấn Trung | 2A202601807 | D — SRE & Alerts Engineer | CP2 SLO, alert rules và alert runbook |
@@ -21,7 +21,7 @@
 - Tổng số traces: **ít nhất 17 trace thật** (12 trace prompt/rollback và 5 trace challenge).
 - Số PII leak còn lại: **0**.
 - Dashboard contract dùng nguồn chuẩn `data/logs.jsonl`; validator và thông số runtime được lưu tại [`evidence/validation-results.md`](evidence/validation-results.md).
-- Test: **25 passed**.
+- Test: **27 passed**.
 
 ## 3. Logging và tracing
 
@@ -64,11 +64,19 @@
 
 | Thành viên | Phần việc/evidence | Commit/PR | Điều đã học |
 |---|---|---|---|
-| Lâm Việt Hoàng | `app/middleware.py`, correlation/response headers và exception flow | `9a14d03` (commit tích hợp nhóm) | Context isolation và correlation ID xuyên suốt request |
+| Lâm Việt Hoàng | `app/middleware.py`, `app/main.py`, correlation/response headers, global exception flow và regression tests | `606cc4c` | Context isolation, correlation ID xuyên suốt request và observability cho lỗi `500` |
 | Lã Minh Đức | `app/pii.py`, `app/logging_config.py`, kiểm chứng redaction | `d98ea81`, `9a14d03` | Redaction phải chạy trước renderer/exporter; không log định danh thô |
 | Hà Nhật Khánh Duy | `app/metrics.py`, `config/dashboard.yaml`, dashboard validator | `9a14d03` (commit tích hợp nhóm) | P50/P95/P99, error rate, cost/token và quality proxy |
 | Hoàng Tuấn Trung | `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md` | `9a14d03` (commit tích hợp nhóm) | Alert symptom-based, duration/minimum traffic và runbook |
 | Trần Huy Hoàng | Load/challenge test, RAG/LLM spans, tests và prompt trace linkage | `9a14d03` | Metrics phát hiện, trace khoanh vùng và log chứng minh root cause |
 | Bùi Hữu Nghĩa | `challenge-investigation.md`, `REPORT.md`, `DEMO.md` và screenshots | `9e0c5d4` (commit evidence nhóm) | Điều tra Metrics → Traces → Logs và trình bày evidence kiểm chứng được |
+
+### Chi tiết đóng góp — Lâm Việt Hoàng
+
+- Chuẩn hóa `x-request-id`: chỉ chấp nhận `req-<8 ký tự hex>`, chuyển về chữ thường và sinh ID mới khi header thiếu hoặc sai định dạng.
+- Xóa/bind `structlog.contextvars` theo vòng đời từng request; lưu correlation ID và thời điểm bắt đầu trong `request.state`.
+- Dùng chung logic tạo `x-request-id` và `x-response-time-ms` cho response thành công lẫn lỗi ngoài dự kiến.
+- Bổ sung global exception handler: ghi `request_failed` với correlation ID/error type, trả thông báo `500` tổng quát để không lộ chi tiết nội bộ.
+- Bổ sung regression tests cho request ID normalization/generation và exception response/log propagation. Kiểm chứng: `27 passed`, log validator `100/100`, dashboard validator `6/6`.
 
 Automation bonus: `scripts/manage_prompts.py` quản lý prompt/rollback idempotent và `scripts/render_dashboard.py` tái tạo dashboard evidence trực tiếp từ log chuẩn.

@@ -2,7 +2,7 @@
 
 ## Phân vai trình bày
 
-- Lâm Việt Hoàng: API, middleware và correlation ID.
+- Lâm Việt Hoàng: API, middleware, correlation ID và observability cho exception.
 - Lã Minh Đức: PII redaction và log an toàn.
 - Hà Nhật Khánh Duy: metrics và dashboard contract 6 panel.
 - Hoàng Tuấn Trung: SLO, alerts và runbook.
@@ -22,3 +22,9 @@
 - PII phải scrub trước renderer/exporter; hash user ID là một chiều và không log ID thô.
 - Prompt label là con trỏ triển khai; version là bản bất biến. Rollback di chuyển label, không sửa lịch sử.
 - Alert symptom-based phản ánh ảnh hưởng người dùng; thêm thời gian duy trì và minimum traffic để giảm nhiễu.
+
+### Câu hỏi phần Lâm Việt Hoàng
+
+- Vì sao phải `clear_contextvars()` ở đầu và cuối request? Để worker không giữ metadata của request trước và gắn nhầm vào log request sau.
+- Vì sao không tin trực tiếp `x-request-id` từ client? ID sai định dạng hoặc quá dài làm log khó truy vấn và có thể trở thành dữ liệu không kiểm soát; middleware chỉ nhận `req-<8 hex>`.
+- Khi endpoint phát sinh lỗi ngoài dự kiến, điều gì còn được giữ lại? Response vẫn có correlation ID và latency; log `request_failed` có cùng ID và error type, còn client chỉ nhận thông báo `500` tổng quát.
