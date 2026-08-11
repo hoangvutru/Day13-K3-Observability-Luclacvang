@@ -1,42 +1,40 @@
-# Demo 5 phút
+# Demo 5 phút — Hà Nhật Khánh Duy (Metrics & Dashboard)
 
-## Chạy Web UI với mock LLM
+## Phần trình bày của tôi
 
-Ứng dụng luôn dùng mock LLM nội bộ, nên không cần API key LLM nào. Chỉ cần bật Langfuse nếu muốn xem trace:
+**Nội dung demo**: Metrics module và dashboard contract 6 panel.
 
-```dotenv
-LANGFUSE_FLUSH_EACH_REQUEST=true
-```
+### Bước demo
 
-Khởi động lại API và mở `http://127.0.0.1:8000`. Hỏi trực tiếp trên giao diện; kết quả sẽ hiện provider/model, token, cost, prompt version, correlation ID, waterfall RAG/LLM và nút mở trace Langfuse vừa tạo.
+1. **Chạy dashboard validator**:
+   ```bash
+   python scripts/validate_dashboard.py
+   ```
+   Kết quả mong đợi: `HỢP LỆ: 6/6 panel có trong dashboard contract.`
 
-Sau khi có câu trả lời, nút trace sẽ tạm hiện `Langfuse is indexing the trace`. Chỉ khi backend kiểm tra Langfuse API và nhận `FOUND`, nút mới cho phép mở; nhờ vậy demo không còn chuyển tới trang `Trace not found` do eventual consistency.
+2. **Đối chiếu 6 panel trong `config/dashboard.yaml`**:
+   - Latency percentiles (P50/P95/P99) — unit: ms, threshold: P95 ≤ 3000.
+   - Request traffic — unit: requests/min, threshold: rate ≥ 1.
+   - Error rate & breakdown — unit: %, threshold: error_rate_pct ≤ 2.
+   - Cost over time — unit: USD, threshold: total ≤ $2.5.
+   - Input/output tokens — unit: tokens, threshold: sum ≤ 50,000.
+   - Quality proxy — unit: score 0–1, threshold: mean ≥ 0.75.
 
-Trước khi chiếu màn hình, xác minh key thật mà không in giá trị key:
+3. **Giải thích `app/metrics.py`**:
+   - Cách `record_request()` thu thập latency, cost, tokens, quality.
+   - Cách `snapshot()` tổng hợp và tính `error_rate_pct`.
+   - Cách `percentile()` tính P50/P95/P99.
 
-```powershell
-python scripts/check_mock_llm.py
-```
-
-## Phân vai trình bày
-
-- Lâm Việt Hoàng: API, middleware và correlation ID.
-- Lã Minh Đức: PII redaction và log an toàn.
-- Hà Nhật Khánh Duy: metrics và dashboard contract 6 panel.
-- Hoàng Tuấn Trung: SLO, alerts và runbook.
-- Trần Huy Hoàng: load test, prompt traces và waterfall RAG/LLM.
-- Bùi Hữu Nghĩa: challenge root cause, fix, preventive measures và kết luận.
-
-1. Chạy API và mở `/health`: tracing bật, incident đều `false`.
-2. Chạy `load_test.py --concurrency 5`, sau đó `validate_logs.py`: chỉ ra correlation, metadata và redaction.
-3. Chạy `python scripts/validate_dashboard.py`, rồi đối chiếu 6 panel, đơn vị, time range 60 phút và threshold trong `config/dashboard.yaml`.
-4. Mở trace `3735d435...`: so sánh `rag.retrieve` 2500 ms với `llm.generate` ~150 ms; tìm log `req-42c65d4b`.
-5. Mở prompt v1/v2 và chạy `manage_prompts.py status`: trạng thái cuối production v1 sau rollback.
+4. **Render dashboard SVG** (nếu có thời gian):
+   ```bash
+   python scripts/render_dashboard.py
+   ```
+   Mở file `submission/evidence/dashboard-runtime.svg` để xem 6 panel với dữ liệu thật.
 
 ## Câu hỏi cần trả lời được
 
-- Correlation ID nối các log trong một request; trace ID nối log với waterfall phân tán.
-- P95 là latency mà 95% mẫu không vượt quá, phù hợp phát hiện “đuôi chậm” hơn mean.
-- PII phải scrub trước renderer/exporter; hash user ID là một chiều và không log ID thô.
-- Prompt label là con trỏ triển khai; version là bản bất biến. Rollback di chuyển label, không sửa lịch sử.
-- Alert symptom-based phản ánh ảnh hưởng người dùng; thêm thời gian duy trì và minimum traffic để giảm nhiễu.
+- **P95 là gì?** P95 là latency mà 95% request nhanh hơn hoặc bằng. Nó phù hợp phát hiện "đuôi chậm" hơn mean vì mean bị kéo bởi outlier, còn P95 phản ánh trải nghiệm thực tế của phần lớn người dùng.
+- **Error rate tính thế nào?** `error_count / traffic * 100`. Cần xử lý trường hợp traffic = 0 (trả về 0.0).
+- **Tại sao dashboard cần contract?** Để đảm bảo dashboard có đủ chỉ số, đúng nguồn dữ liệu, đúng time range và có threshold rõ ràng. Contract giúp validate tự động và tái tạo được.
+- **6 nhóm chỉ số gồm gì?** Latency (performance), Traffic (load), Errors (reliability), Cost (budget), Tokens (usage), Quality (output effectiveness).
+- **Thread safety trong metrics?** Dùng `threading.Lock` để đồng bộ truy cập khi nhiều request đồng thời ghi metrics vào các biến toàn cục.

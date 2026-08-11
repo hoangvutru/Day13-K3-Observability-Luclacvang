@@ -1,75 +1,106 @@
-# Báo cáo Day 13 Observability
+# Báo cáo Day 13 Observability — Hà Nhật Khánh Duy
 
-## 1. Thông tin nhóm
+## 1. Thông tin cá nhân
 
-- Tên nhóm: Lục Lạc Vàng (K3)
+- Họ tên: Hà Nhật Khánh Duy
+- MSSV: 2A202602031
+- Nhóm: Lục Lạc Vàng (K3)
+- Vai trò: C — Metrics & Dashboard
 - Repository URL: https://github.com/hoangvutru/Day13-K3-Observability-Luclacvang
-- Commit SHA cuối: dùng SHA của repository HEAD khi nộp; commit triển khai cụ thể được ghi ở mục 7.
+- Commit SHA: `9a14d03` (commit tích hợp nhóm)
 
-| Thành viên        | MSSV        | Vai trò                                | Phạm vi phụ trách                                                |
-| ----------------- | ----------- | -------------------------------------- | ---------------------------------------------------------------- |
-| Lâm Việt Hoàng    | 2A202601067 | A — API & Middleware                   | CP1 middleware, correlation ID và exception handler mở rộng      |
-| Lã Minh Đức       | 2A202601261 | B — Security Engineer                  | CP1 PII scrubbing, regex patterns và kiểm chứng log không lộ PII |
-| Hà Nhật Khánh Duy | 2A202602031 | C — Metrics & Dashboard                | CP1/CP2 `error_rate_pct` và dashboard 6 nhóm chỉ số              |
-| Hoàng Tuấn Trung  | 2A202601807 | D — SRE & Alerts Engineer              | CP2 SLO, alert rules và alert runbook                            |
-| Trần Huy Hoàng    | 2A202601709 | E1 — QA & Tracing                      | Load test, test hồi quy và trace cho RAG/LLM                     |
-| Bùi Hữu Nghĩa     | 2A202601880 | E2 — Chief Investigator, Report & Demo | Điều tra challenge CP3, evidence, báo cáo và demo nhóm           |
+## 2. Phạm vi phụ trách
 
-## 2. Kết quả kỹ thuật
+- **CP1**: Triển khai `error_rate_pct` trong module metrics — tính tỷ lệ lỗi phần trăm từ error count / traffic.
+- **CP2**: Thiết kế và hoàn thiện dashboard contract 6 nhóm chỉ số theo `config/dashboard.yaml`, đảm bảo validator `scripts/validate_dashboard.py` báo hợp lệ 6/6 panel.
 
-- `validate_logs.py`: **100/100** (85 records, 22 correlation ID, 0 thiếu schema/enrichment, 0 PII leak).
-- Tổng số traces: **ít nhất 17 trace thật** (12 trace prompt/rollback và 5 trace challenge).
-- Số PII leak còn lại: **0**.
-- Dashboard contract dùng nguồn chuẩn `data/logs.jsonl`; validator và thông số runtime được lưu tại [`evidence/validation-results.md`](evidence/validation-results.md).
-- Test: **32 passed**.
-- Web UI demo tại `/`: gọi OpenRouter server-side, hiển thị model/provider, token/cost, prompt version, correlation ID, waterfall RAG/LLM và link trace Langfuse vừa tạo.
+## 3. Các file đã triển khai
 
-## 3. Logging và tracing
+### 3.1. `app/metrics.py`
 
-- Correlation/metadata/PII: [`evidence/logging-pii.md`](evidence/logging-pii.md).
-- Validation: [`evidence/validation-results.md`](evidence/validation-results.md).
-- Danh sách observations/traces trực tiếp trên Langfuse: [`evidence/langfuse-trace-list.png`](evidence/langfuse-trace-list.png).
-- Trace waterfall trực tiếp trên Langfuse: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
-- Trace waterfall tiêu biểu: [`3735d4355029f97df3a7e3404c15933b`](https://cloud.langfuse.com/project/cmso2fnd803s7ad0cpj2r3l76/traces/3735d4355029f97df3a7e3404c15933b).
-- Span đáng chú ý: `rag.retrieve=2500 ms`, chiếm khoảng 94% request `2656 ms`; `llm.generate` khoảng 150 ms.
+Module thu thập và tổng hợp metrics runtime:
 
-## 4. Prompt versioning
+- **Dữ liệu thu thập**: latency (ms), cost (USD), tokens in/out, quality score, error count, traffic count.
+- **Thread-safe**: sử dụng `threading.Lock` để đồng bộ truy cập dữ liệu giữa các request đồng thời.
+- **Hàm chính**:
+  - `record_request(latency_ms, cost_usd, tokens_in, tokens_out, quality_score)`: ghi nhận metrics mỗi request thành công.
+  - `record_error(error_type)`: đếm lỗi theo loại.
+  - `percentile(values, p)`: tính percentile (P50, P95, P99) — sắp xếp danh sách rồi lấy phần tử tại vị trí tương ứng.
+  - `snapshot()`: trả về dict tổng hợp toàn bộ metrics tại thời điểm gọi.
+- **`error_rate_pct`**: công thức `(error_count / traffic) * 100`, trả về `0.0` nếu chưa có traffic. Đây là chỉ số cốt lõi cho panel Error rate trên dashboard.
 
-- Prompt name: `day13-chat`.
-- Baseline: v1, label `baseline`; candidate: v2, label `candidate`.
-- Trace baseline: `0203530208148c7d03ef7d8da14eb214`; trace candidate: `8606d1477904dc77aeda215c89feee49`.
-- Đã promote production lên v2 (`53e7478...`) rồi rollback production về v1 (`6d6f30c...`).
-- Inventory và link kiểm chứng: [`evidence/langfuse-prompts-traces.md`](evidence/langfuse-prompts-traces.md).
-- Screenshot trace production v1 có metadata `prompt_name`, `prompt_label`, `prompt_version`: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
+### 3.2. `config/dashboard.yaml`
 
-## 5. Dashboard, SLO và alerts
+Dashboard contract định nghĩa 6 panel bắt buộc:
 
-- Validator: **HỢP LỆ 6/6 panel**.
-- Dashboard contract: time range 60 phút, refresh 30 giây, đủ unit và threshold; kết quả validator nằm trong [`evidence/validation-results.md`](evidence/validation-results.md).
-- SLO chính: P95 ≤ 3000 ms với target 99.5%/28 ngày; P95 nhạy với tail latency và sát trải nghiệm người dùng.
-- SLO bổ sung: error ≤ 2%, daily cost ≤ $2.5, quality mean ≥ 0.75.
-- Ba alert symptom-based có duration/minimum traffic/owner tại [`../config/alert_rules.yaml`](../config/alert_rules.yaml); runbook tại [`../docs/alerts.md`](../docs/alerts.md).
+| Panel ID  | Title                    | Source           | Unit                | Threshold                |
+| --------- | ------------------------ | ---------------- | ------------------- | ------------------------ |
+| latency   | Latency percentiles      | data/logs.jsonl  | ms                  | P95 ≤ 3000               |
+| traffic   | Request traffic          | data/logs.jsonl  | requests_per_minute | rate_per_minute ≥ 1      |
+| errors    | Error rate and breakdown | data/logs.jsonl  | percent             | error_rate_pct ≤ 2       |
+| cost      | Cost over time           | data/logs.jsonl  | usd                 | total ≤ $2.5             |
+| tokens    | Input and output tokens  | data/logs.jsonl  | tokens              | sum_by_field ≤ 50,000    |
+| quality   | Quality proxy            | data/logs.jsonl  | score_0_to_1        | mean ≥ 0.75              |
 
-## 6. Điều tra challenge
+Cấu hình chung:
+- `schema_version: 1`
+- `time_range_minutes: 60`
+- `refresh_seconds: 30`
+- Mỗi panel có đầy đủ: `title`, `source`, `events`, `fields`, `aggregations`, `query`, `unit`, `threshold`.
 
-- Challenge ID: `day13-k3-observability-v1`; affected feature: `refund`; scenario release: `rag_slow`.
-- Metrics: P95 tăng `893 → 2656 ms`, vượt threshold 2000 ms; error vẫn 0%.
-- Trace: `3735d4355029f97df3a7e3404c15933b`; correlation: `req-42c65d4b`.
-- Root cause: span/log `rag.retrieve`/`vector_store` mất 2500 ms; không phải LLM.
-- Fix: disable flag challenge, xác minh health trở về bình thường.
-- Prevention: latency alert, dependency span, timeout/circuit breaker, retrieval fallback/cache và canary.
-- Screenshot waterfall challenge: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
-- Toàn bộ bằng chứng: [`evidence/challenge-investigation.md`](evidence/challenge-investigation.md).
+### 3.3. `scripts/validate_dashboard.py` (dashboard validator)
 
-## 7. Đóng góp cá nhân
+Script kiểm tra tính hợp lệ của dashboard contract:
 
-| Thành viên        | Phần việc/evidence                                                  | Commit/PR                        | Điều đã học                                                            |
-| ----------------- | ------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------- |
-| Lâm Việt Hoàng    | `app/middleware.py`, correlation/response headers và exception flow | `9a14d03` (commit tích hợp nhóm) | Context isolation và correlation ID xuyên suốt request                 |
-| Lã Minh Đức       | `app/pii.py`, `app/logging_config.py`, kiểm chứng redaction         | `d98ea81`, `9a14d03`             | Redaction phải chạy trước renderer/exporter; không log định danh thô   |
-| Hà Nhật Khánh Duy | `app/metrics.py`, `config/dashboard.yaml`, dashboard validator      | `9a14d03` (commit tích hợp nhóm) | P50/P95/P99, error rate, cost/token và quality proxy                   |
-| Hoàng Tuấn Trung  | `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md`      | `9a14d03` (commit tích hợp nhóm) | Alert symptom-based, duration/minimum traffic và runbook               |
-| Trần Huy Hoàng    | Load/challenge test, RAG/LLM spans, tests và prompt trace linkage   | `9a14d03`                        | Metrics phát hiện, trace khoanh vùng và log chứng minh root cause      |
-| Bùi Hữu Nghĩa     | `challenge-investigation.md`, `REPORT.md`, `DEMO.md` và screenshots | `9e0c5d4` (commit evidence nhóm) | Điều tra Metrics → Traces → Logs và trình bày evidence kiểm chứng được |
+- Kiểm tra `schema_version == 1`, `time_range_minutes == 60`, `refresh_seconds` trong khoảng 15–30.
+- Kiểm tra đủ 6 panel ID: `latency`, `traffic`, `errors`, `cost`, `tokens`, `quality`.
+- Kiểm tra mỗi panel có đủ các trường bắt buộc: `title`, `source`, `events`, `fields`, `aggregations`, `query`, `unit`, `threshold`.
+- Kiểm tra threshold hợp lệ: `aggregation` thuộc danh sách aggregations của panel, `operator` là `lte` hoặc `gte`, `value` là số.
 
-Automation bonus: `scripts/manage_prompts.py` quản lý prompt/rollback idempotent và `scripts/render_dashboard.py` tái tạo dashboard evidence trực tiếp từ log chuẩn.
+### 3.4. `scripts/render_dashboard.py` (bonus automation)
+
+Script tự động tạo file SVG dashboard từ `data/logs.jsonl`:
+
+- Đọc log records trong 60 phút gần nhất.
+- Tính toán metrics thật: P50/P95/P99, error rate, total cost, tokens in/out, quality mean.
+- Render 6 panel với thanh progress bar và trạng thái healthy/unhealthy dựa trên threshold từ `config/dashboard.yaml`.
+- Output: `submission/evidence/dashboard-runtime.svg`.
+
+## 4. Kết quả đạt được
+
+### Dashboard validator
+```text
+HỢP LỆ: 6/6 panel có trong dashboard contract.
+```
+
+### Log validator (kết quả nhóm)
+```text
+Total log records analyzed: 85
+Estimated Score: 100/100
+```
+
+### Automated tests
+```text
+32 passed in 2.02s
+```
+
+Có thể tái tạo bằng:
+```bash
+python scripts/validate_dashboard.py
+python scripts/validate_logs.py
+python -m pytest -q
+```
+
+## 5. Evidence liên quan
+
+- Kết quả validator đầy đủ: [`evidence/validation-results.md`](evidence/validation-results.md).
+- Dashboard contract: [`config/dashboard.yaml`](../config/dashboard.yaml).
+- Metrics module: [`app/metrics.py`](../app/metrics.py).
+
+## 6. Điều đã học
+
+- **Percentile (P50/P95/P99)**: P95 là giá trị mà 95% request có latency thấp hơn hoặc bằng. So với mean, P95 nhạy hơn với "đuôi chậm" (tail latency), phản ánh chính xác hơn trải nghiệm người dùng thực tế. P50 cho biết trải nghiệm "thông thường", P99 cho biết worst case.
+- **Error rate**: Tính bằng tỷ lệ phần trăm request lỗi trên tổng traffic. Cần guard `if traffic == 0` để tránh chia cho 0. Threshold ≤ 2% là mức chấp nhận được cho SLO.
+- **Dashboard contract**: Dashboard không phải chỉ là hình ảnh — nó cần contract rõ ràng: nguồn dữ liệu (`data/logs.jsonl`), time range, refresh interval, unit cho mỗi panel, và threshold để phân biệt healthy/unhealthy.
+- **6 nhóm chỉ số cần thiết cho Observability AI**: latency (performance), traffic (load), errors (reliability), cost (budget), tokens (usage), quality (output effectiveness). Đây là bộ chỉ số tối thiểu để quan sát một hệ thống AI.
+- **Thread safety**: Khi nhiều request đồng thời cập nhật metrics, cần dùng Lock để tránh race condition trên các biến toàn cục.
