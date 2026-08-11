@@ -13,6 +13,8 @@ LANGFUSE_FLUSH_EACH_REQUEST=true
 
 Khởi động lại API và mở `http://127.0.0.1:8000`. Hỏi trực tiếp trên giao diện; kết quả sẽ hiện provider/model, token, cost, prompt version, correlation ID, waterfall RAG/LLM và nút mở trace Langfuse vừa tạo.
 
+Sau khi có câu trả lời, nút trace sẽ tạm hiện `Langfuse is indexing the trace`. Chỉ khi backend kiểm tra Langfuse API và nhận `FOUND`, nút mới cho phép mở; nhờ vậy demo không còn chuyển tới trang `Trace not found` do eventual consistency.
+
 Trước khi chiếu màn hình, xác minh key thật mà không in giá trị key:
 
 ```powershell

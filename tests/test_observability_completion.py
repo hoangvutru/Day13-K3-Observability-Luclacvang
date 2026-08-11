@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app import logging_config
+from app import main as main_module
 from app.logging_config import add_schema_defaults, scrub_event
 from app.main import app
 
@@ -75,5 +76,74 @@ def test_demo_ui_is_served_without_api_keys() -> None:
     assert "Signal Room" in response.text
     assert 'name="color-scheme" content="light"' in response.text
     assert "Light editorial theme" in response.text
+    assert "waitForTrace" in response.text
+    assert "/traces/${encodeURIComponent(traceId)}/status" in response.text
     assert "OPENROUTER_API_KEY" not in response.text
     assert "LANGFUSE_SECRET_KEY" not in response.text
+
+
+class _ReadyTrace:
+    observations = [object(), object(), object()]
+
+
+class _ReadyTraceApi:
+    class _TraceResource:
+        @staticmethod
+        def get(trace_id: str):
+            assert trace_id == "a" * 32
+            return _ReadyTrace()
+
+    trace = _TraceResource()
+
+    @staticmethod
+    def get_trace_url(*, trace_id: str) -> str:
+        return f"https://langfuse.test/traces/{trace_id}"
+
+    api = type("Api", (), {"trace": trace})()
+
+
+def test_trace_status_only_reports_ready_after_langfuse_lookup(monkeypatch) -> None:
+    client = _ReadyTraceApi()
+    monkeypatch.setattr(main_module, "tracing_enabled", lambda: True)
+    monkeypatch.setattr(main_module, "get_langfuse_client", lambda: client)
+
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/traces/{'a' * 32}/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ready": True,
+        "state": "ready",
+        "trace_id": "a" * 32,
+        "trace_url": f"https://langfuse.test/traces/{'a' * 32}",
+        "observations": 3,
+    }
+
+
+def test_trace_status_reports_eventual_consistency_as_indexing(monkeypatch) -> None:
+    class PendingError(Exception):
+        status_code = 404
+
+    class PendingClient:
+        api = type(
+            "Api",
+            (),
+            {"trace": type("TraceResource", (), {"get": lambda self, _: (_ for _ in ()).throw(PendingError())})()},
+        )()
+
+    monkeypatch.setattr(main_module, "tracing_enabled", lambda: True)
+    monkeypatch.setattr(main_module, "get_langfuse_client", lambda: PendingClient())
+
+    with TestClient(app) as test_client:
+        response = test_client.get(f"/traces/{'b' * 32}/status")
+
+    assert response.status_code == 200
+    assert response.json()["ready"] is False
+    assert response.json()["state"] == "indexing"
+
+
+def test_trace_status_rejects_invalid_id() -> None:
+    with TestClient(app) as test_client:
+        response = test_client.get("/traces/not-a-trace/status")
+
+    assert response.status_code == 400

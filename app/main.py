@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -39,6 +40,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
 app.add_middleware(CorrelationIdMiddleware)
 STATIC_DIR = Path(__file__).with_name("static")
+TRACE_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -62,6 +64,47 @@ async def health() -> dict:
 @app.get("/metrics")
 async def metrics() -> dict:
     return snapshot()
+
+
+def _lookup_trace(trace_id: str) -> dict:
+    client = get_langfuse_client()
+    try:
+        trace = client.api.trace.get(trace_id)
+    except Exception as exc:  # Langfuse ingestion is eventually consistent.
+        status_code = getattr(exc, "status_code", None)
+        if status_code == 404 or type(exc).__name__ == "NotFoundError":
+            return {"ready": False, "state": "indexing", "trace_id": trace_id}
+        log.warning(
+            "trace_readiness_check_failed",
+            service="api",
+            error_type=type(exc).__name__,
+        )
+        return {"ready": False, "state": "unavailable", "trace_id": trace_id}
+
+    get_trace_url = getattr(client, "get_trace_url", None)
+    trace_url = None
+    if callable(get_trace_url):
+        try:
+            trace_url = get_trace_url(trace_id=trace_id)
+        except Exception:
+            trace_url = None
+    return {
+        "ready": True,
+        "state": "ready",
+        "trace_id": trace_id,
+        "trace_url": trace_url,
+        "observations": len(getattr(trace, "observations", []) or []),
+    }
+
+
+@app.get("/traces/{trace_id}/status")
+async def trace_status(trace_id: str) -> dict:
+    normalized = trace_id.strip().lower()
+    if not TRACE_ID_PATTERN.fullmatch(normalized):
+        raise HTTPException(status_code=400, detail="Invalid trace ID")
+    if not tracing_enabled():
+        return {"ready": False, "state": "disabled", "trace_id": normalized}
+    return await run_in_threadpool(_lookup_trace, normalized)
 
 
 @app.post("/chat", response_model=ChatResponse)

@@ -24,7 +24,7 @@ HỢP LỆ: 6/6 panel có trong dashboard contract.
 ## Automated tests
 
 ```text
-29 passed in 1.75s
+32 passed in 2.02s
 ```
 
 Các kết quả có thể tái tạo bằng:
