@@ -2,7 +2,7 @@
 
 1. Chạy API và mở `/health`: tracing bật, incident đều `false`.
 2. Chạy `load_test.py --concurrency 5`, sau đó `validate_logs.py`: chỉ ra correlation, metadata và redaction.
-3. Mở `dashboard-runtime.svg`: đọc 6 panel, đơn vị, 60 phút và threshold.
+3. Chạy `python scripts/validate_dashboard.py`, rồi đối chiếu 6 panel, đơn vị, time range 60 phút và threshold trong `config/dashboard.yaml`.
 4. Mở trace `3735d435...`: so sánh `rag.retrieve` 2500 ms với `llm.generate` ~150 ms; tìm log `req-42c65d4b`.
 5. Mở prompt v1/v2 và chạy `manage_prompts.py status`: trạng thái cuối production v1 sau rollback.
 

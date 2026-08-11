@@ -12,13 +12,15 @@
 - `validate_logs.py`: **100/100** (85 records, 22 correlation ID, 0 thiếu schema/enrichment, 0 PII leak).
 - Tổng số traces: **ít nhất 17 trace thật** (12 trace prompt/rollback và 5 trace challenge).
 - Số PII leak còn lại: **0**.
-- Dashboard: [`evidence/dashboard-runtime.svg`](evidence/dashboard-runtime.svg), nguồn chuẩn `data/logs.jsonl`.
+- Dashboard contract dùng nguồn chuẩn `data/logs.jsonl`; validator và thông số runtime được lưu tại [`evidence/validation-results.md`](evidence/validation-results.md).
 - Test: **25 passed**.
 
 ## 3. Logging và tracing
 
 - Correlation/metadata/PII: [`evidence/logging-pii.md`](evidence/logging-pii.md).
 - Validation: [`evidence/validation-results.md`](evidence/validation-results.md).
+- Danh sách observations/traces trực tiếp trên Langfuse: [`evidence/langfuse-trace-list.png`](evidence/langfuse-trace-list.png).
+- Trace waterfall trực tiếp trên Langfuse: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
 - Trace waterfall tiêu biểu: [`3735d4355029f97df3a7e3404c15933b`](https://cloud.langfuse.com/project/cmso2fnd803s7ad0cpj2r3l76/traces/3735d4355029f97df3a7e3404c15933b).
 - Span đáng chú ý: `rag.retrieve=2500 ms`, chiếm khoảng 94% request `2656 ms`; `llm.generate` khoảng 150 ms.
 
@@ -29,12 +31,12 @@
 - Trace baseline: `0203530208148c7d03ef7d8da14eb214`; trace candidate: `8606d1477904dc77aeda215c89feee49`.
 - Đã promote production lên v2 (`53e7478...`) rồi rollback production về v1 (`6d6f30c...`).
 - Inventory và link kiểm chứng: [`evidence/langfuse-prompts-traces.md`](evidence/langfuse-prompts-traces.md).
-- Visual API-verified (prompt transition + waterfall): [`evidence/langfuse-runtime-evidence.svg`](evidence/langfuse-runtime-evidence.svg).
+- Screenshot trace production v1 có metadata `prompt_name`, `prompt_label`, `prompt_version`: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
 
 ## 5. Dashboard, SLO và alerts
 
 - Validator: **HỢP LỆ 6/6 panel**.
-- Dashboard runtime: [`evidence/dashboard-runtime.svg`](evidence/dashboard-runtime.svg), time range 60 phút, refresh 30 giây, đủ unit và threshold.
+- Dashboard contract: time range 60 phút, refresh 30 giây, đủ unit và threshold; kết quả validator nằm trong [`evidence/validation-results.md`](evidence/validation-results.md).
 - SLO chính: P95 ≤ 3000 ms với target 99.5%/28 ngày; P95 nhạy với tail latency và sát trải nghiệm người dùng.
 - SLO bổ sung: error ≤ 2%, daily cost ≤ $2.5, quality mean ≥ 0.75.
 - Ba alert symptom-based có duration/minimum traffic/owner tại [`../config/alert_rules.yaml`](../config/alert_rules.yaml); runbook tại [`../docs/alerts.md`](../docs/alerts.md).
@@ -47,6 +49,7 @@
 - Root cause: span/log `rag.retrieve`/`vector_store` mất 2500 ms; không phải LLM.
 - Fix: disable flag challenge, xác minh health trở về bình thường.
 - Prevention: latency alert, dependency span, timeout/circuit breaker, retrieval fallback/cache và canary.
+- Screenshot waterfall challenge: [`evidence/langfuse-trace-waterfall.png`](evidence/langfuse-trace-waterfall.png).
 - Toàn bộ bằng chứng: [`evidence/challenge-investigation.md`](evidence/challenge-investigation.md).
 
 ## 7. Đóng góp cá nhân
