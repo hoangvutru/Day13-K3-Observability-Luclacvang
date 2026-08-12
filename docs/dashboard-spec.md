@@ -25,3 +25,19 @@ Kiểm tra contract trước khi chụp evidence:
 ```bash
 python scripts/validate_dashboard.py
 ```
+
+
+{
+  "traffic": 24,
+  "latency_p50": 1129,
+  "latency_p95": 1178,
+  "latency_p99": 1179,
+  "avg_cost_usd": 0.0019,
+  "total_cost_usd": 0.0467,
+  "tokens_in_total": 772,
+  "tokens_out_total": 2960,
+  "error_breakdown": {
+
+  },
+  "quality_avg": 0.875
+}

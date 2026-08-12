@@ -1,19 +1,19 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: latency_spike
+    severity: high
+    condition: "p95 latency > 2000 ms over 5 minutes"
     type: symptom-based
-    owner: TODO
+    owner: observability-team
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+  - name: error_rate_increase
+    severity: medium
+    condition: "error rate > 2% over 5 minutes"
     type: symptom-based
-    owner: TODO
+    owner: api-reliability-team
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+  - name: quality_degradation
+    severity: medium
+    condition: "mean quality_score < 0.75 over 5 minutes"
     type: symptom-based
-    owner: TODO
+    owner: ai-quality-team
     runbook: docs/alerts.md#alert-3
